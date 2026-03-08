@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#1A6BFF" />
+  <meta name="description"
+    content="CareerIQ Pro — AI-Driven Career Growth and Job Assistance Platform with Explainable Intelligence, Salary Normalization, and Privacy-First Design" />
+  <meta name="keywords" content="career, AI, salary, job matching, skill gap, career growth, resume" />
+  <meta property="og:title" content="CareerIQ Pro" />
+  <meta property="og:description" content="Explainable career intelligence platform" />
+  <meta property="og:type" content="website" />
+  <link rel="icon"
+    href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧠</text></svg>" />
+  <title>CareerIQ Pro — AI Career Intelligence</title>
+  <style>
+    /* Critical CSS — prevents FOUC */
+    body {
+      margin: 0;
+      background: #141420;
+      color: #EEEEF8;
+      font-family: Inter, sans-serif;
+    }
+
+    #loading-screen {
+      position: fixed;
+      inset: 0;
+      background: #141420;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 16px;
+      z-index: 9999;
+      transition: opacity 0.4s ease;
+    }
+
+    #loading-screen.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .loader-logo {
+      font-size: 32px;
+      font-weight: 800;
+      letter-spacing: -1px;
+    }
+
+    .loader-logo span {
+      color: #1A6BFF;
+    }
+
+    .loader-bar {
+      width: 180px;
+      height: 3px;
+      background: #28283C;
+      border-radius: 2px;
+      overflow: hidden;
+    }
+
+    .loader-bar::after {
+      content: '';
+      display: block;
+      height: 100%;
+      background: linear-gradient(90deg, #1A6BFF, #AAFF00);
+      animation: loading 1.2s ease-in-out infinite;
+      border-radius: 2px;
+    }
+
+    @keyframes loading {
+      0% {
+        width: 0%;
+        margin-left: 0;
+      }
+
+      50% {
+        width: 80%;
+        margin-left: 10%;
+      }
+
+      100% {
+        width: 0%;
+        margin-left: 100%;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div id="loading-screen">
+    <div class="loader-logo">Career<span>IQ</span></div>
+    <div class="loader-bar"></div>
+    <div style="font-size:12px;color:#7777AA;letter-spacing:1px;text-transform:uppercase;font-family:monospace">Loading
+      AI Engine...</div>
+  </div>
+
+  <noscript>
+    <div
+      style="padding:40px;text-align:center;color:#EEEEF8;background:#141420;min-height:100vh;display:flex;align-items:center;justify-content:center;">
+      <div>
+        <h1 style="font-size:24px;margin-bottom:12px">CareerIQ Pro</h1>
+        <p style="color:#7777AA">Please enable JavaScript to use CareerIQ Pro.</p>
+      </div>
+    </div>
+  </noscript>
+
+  <div id="root"></div>
+
+  <script>
+    // Hide loading screen once React mounts
+    window.addEventListener('load', function () {
+      setTimeout(function () {
+        var el = document.getElementById('loading-screen');
+        if (el) { el.classList.add('hidden'); setTimeout(function () { el.remove(); }, 400); }
+      }, 600);
+    });
+  </script>
+</body>
+
+</html>

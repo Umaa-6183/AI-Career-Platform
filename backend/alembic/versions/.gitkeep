@@ -1,0 +1,2 @@
+# Migration files are generated here by: alembic revision --autogenerate -m "description"
+# Then applied with: alembic upgrade head

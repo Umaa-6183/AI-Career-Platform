@@ -1,0 +1,130 @@
+/* CareerIQ Pro — Global Styles */
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&family=Inter:wght@300;400;500;600&display=swap');
+
+/* ── Reset ──────────────────────────────────────────────────────────────────── */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-size: 16px;
+  -webkit-text-size-adjust: 100%;
+  scroll-behavior: smooth;
+}
+
+body {
+  background: #141420;
+  color: #EEEEF8;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 14px;
+  line-height: 1.6;
+  min-height: 100vh;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#root {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Scrollbars ──────────────────────────────────────────────────────────────── */
+::-webkit-scrollbar         { width: 5px; height: 5px; }
+::-webkit-scrollbar-track   { background: #141420; }
+::-webkit-scrollbar-thumb   { background: #1A6BFF; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #3d85ff; }
+
+/* ── Typography ──────────────────────────────────────────────────────────────── */
+.font-syne  { font-family: 'Syne', sans-serif; }
+.font-mono  { font-family: 'JetBrains Mono', monospace; }
+.font-inter { font-family: 'Inter', sans-serif; }
+
+/* ── Keyframes ───────────────────────────────────────────────────────────────── */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(18px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50%       { transform: translateY(-8px); }
+}
+
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(26, 107, 255, 0.2); }
+  50%       { box-shadow: 0 0 20px 6px rgba(26, 107, 255, 0.2); }
+}
+
+@keyframes shimmer {
+  0%   { background-position: -200% center; }
+  100% { background-position:  200% center; }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0; }
+}
+
+@keyframes slideInRight {
+  from { opacity: 0; transform: translateX(20px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+/* ── Utility classes ─────────────────────────────────────────────────────────── */
+.anim-fade-up      { animation: fadeUp 0.45s ease both; }
+.anim-fade-in      { animation: fadeIn 0.3s ease both; }
+.anim-float        { animation: float 3s ease-in-out infinite; }
+.anim-pulse-glow   { animation: pulse-glow 2s ease-in-out infinite; }
+
+/* ── Grid background helper ──────────────────────────────────────────────────── */
+.grid-bg {
+  background-image:
+    linear-gradient(rgba(255,255,255,0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.04) 1px, transparent 1px);
+  background-size: 48px 48px;
+}
+
+/* ── Loading spinner ─────────────────────────────────────────────────────────── */
+.spinner {
+  width: 20px; height: 20px;
+  border: 2px solid rgba(255,255,255,0.1);
+  border-top-color: #1A6BFF;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  display: inline-block;
+}
+
+/* ── Focus visible (accessibility) ──────────────────────────────────────────── */
+*:focus-visible {
+  outline: 2px solid #1A6BFF;
+  outline-offset: 2px;
+}
+
+/* ── Selection ───────────────────────────────────────────────────────────────── */
+::selection {
+  background: rgba(26, 107, 255, 0.35);
+  color: #fff;
+}
+
+/* ── Recharts overrides ──────────────────────────────────────────────────────── */
+.recharts-tooltip-wrapper .recharts-default-tooltip {
+  background: #1E1E2E !important;
+  border: 1px solid rgba(255,255,255,0.07) !important;
+  border-radius: 8px !important;
+  color: #EEEEF8 !important;
+  font-family: 'Inter', sans-serif !important;
+  font-size: 12px !important;
+}

@@ -1,0 +1,156 @@
+# CareerIQ Pro — 25-Step Userflow Implementation Plan
+
+This plan updates [App_Full.jsx](file:///Users/umaamaheshwarysv/Desktop/AI_Jobs/App_Full.jsx) (and supporting files) to implement the complete 25-step userflow requested by the user. The existing file already has ~14 pages; we need to add 10 new pages/components and enhance 4 existing ones.
+
+## Proposed Changes
+
+### App_Full.jsx — Core File
+
+The entire userflow is managed in [App_Full.jsx](file:///Users/umaamaheshwarysv/Desktop/AI_Jobs/App_Full.jsx). Changes:
+
+#### [MODIFY] [App_Full.jsx](file:///Users/umaamaheshwarysv/Desktop/AI_Jobs/frontend/src/App_Full.jsx)
+
+**Step 1–4: Pre-Auth Flow**
+
+Add a `flowStep` state before showing the main dashboard with 4 stages:
+
+1. **Landing Page** (exists) — Add a prominent animated hero CTA button that transitions to onboarding.
+
+2. **Smart Onboarding** — New `SmartOnboarding` component with 3-step wizard:
+   - Step 1: "What brings you here?" — card-based intent picker (Job Switch / Salary Raise / Upskill / Career Change)
+   - Step 2: Industry + role context
+   - Step 3: Urgency and timeline ("When do you want this change?")
+   
+3. **Career Intent Detection** — Derives intent tags from onboarding answers (e.g., `["salary_growth", "role_change"]`), shows detected intent summary with confidence scores before continuing.
+
+4. **Signup / Login** — New `AuthGate` component with two tabs:
+   - Signup: Name + email + password fields (mock, no real auth)
+   - Login: Email + password (mock, uses localStorage)
+   - "Continue as Guest" option
+
+**Step 5–7: Profile Setup**
+
+5. **Resume Upload OR Profile Creation** — New `ProfileSetup` component allowing:
+   - Upload resume file (drag & drop area, simulated parse)
+   - OR fill out manual profile form
+   
+6. **Resume Parsing + Privacy Anonymization** — Enhance existing [ResumeAnalysis](file:///Users/umaamaheshwarysv/Desktop/AI_Jobs/frontend/src/App.jsx#406-513) to show file upload first, then parsed result with PII strip animation.
+
+7. **Profile Completion Engine** — New `ProfileCompletionEngine` component:
+   - Checklist of 8 profile items (resume, skills, target role, salary, location, etc.)
+   - Gamified progress ring (% complete)
+   - Points/badge system when reaching 100%
+
+**Step 8–10: Intelligence Phase**
+
+8. **AI Career Baseline Assessment** — New `CareerBaselineAssessment` component:
+   - 5-question self-assessment quiz (role level, satisfaction, growth goals, skill confidence, market awareness)
+   - Score card output with radar visualization showing baseline vs target
+
+9. **Salary Estimation Model** — Enhance [SalaryIntelligence](file:///Users/umaamaheshwarysv/Desktop/AI_Jobs/frontend/src/App.jsx#514-572) with dynamic salary estimation based on user inputs (role + YoE + location + skills).
+
+10. **Salary Normalization** — Already in [SalaryIntelligence](file:///Users/umaamaheshwarysv/Desktop/AI_Jobs/frontend/src/App.jsx#514-572), add visual L1–L10 band with animated position indicator.
+
+**Step 11–12: Dashboard**
+
+11. **Career Intelligence Dashboard** — Update [Dashboard](file:///Users/umaamaheshwarysv/Desktop/AI_Jobs/frontend/src/App_Full.jsx#359-461) to show Career Readiness Score prominently.
+
+12. **Skill Gap Analysis** — Link to Career Path Simulation from within skill gap view.
+
+**Step 13–15: AI Features**
+
+13. **Career Path Simulation** — New `CareerPathSimulation` component:
+    - Interactive tree/flowchart showing 3 branching paths from current role
+    - Each node: role name, salary range, time estimate, required skills
+    - Toggle between "Fast Track / Balanced / Conservative" paths
+    - Uses recharts/custom SVG tree
+
+14. **AI Skill Recommendations** — New `AISkillRecommendations` component:
+    - Personalized top-5 skill priority list with AI reasoning text
+    - Salary impact per skill, estimated learning time
+    - "Why this skill?" expandable section
+
+15. **Learning Resource Engine** — New `LearningResourceEngine` component:
+    - Curated cards for each priority skill (courses, books, projects)
+    - Filter by type (video / book / project / certification)
+    - Salary uplift badge, platform rating, duration
+
+**Step 23–24: Growth Phase**
+
+23. **AI Career Advisor** — New `AICareerAdvisor` component:
+    - Chat-style interface with simulated AI responses
+    - Pre-set context-aware query buttons ("How do I get to L5?", "What skills to prioritize?")
+    - Streaming text effect for AI response
+
+24. **Continuous Career Growth Loop** — New `GrowthLoop` component:
+    - Weekly AI digest card (what changed in market)
+    - Streak counter and momentum score
+    - "Next best action" suggestion
+    - Re-engagement nudges based on last activity
+
+**Navigation Changes** — Add new nav items:
+```
+- onboarding: Smart Onboarding
+- auth: Login / Signup
+- profile-setup: Profile Setup
+- profile-complete: Profile Completion
+- baseline: Career Baseline
+- path-sim: Career Path Simulation  
+- ai-skills: AI Skill Recommendations
+- learning: Learning Resources
+- advisor: AI Career Advisor
+- growth-loop: Growth Loop
+```
+
+**App Flow Logic** — Change top-level [App()](file:///Users/umaamaheshwarysv/Desktop/AI_Jobs/frontend/src/App_Full.jsx#2119-2317) to manage a pre-auth flow:
+```
+flowStep: "landing" → "onboarding" → "intent" → "auth" → "profile" → "baseline" → "dashboard"
+```
+Once `flowStep === "dashboard"`, show the full sidebar+nav layout.
+
+---
+
+#### [MODIFY] [index.js](file:///Users/umaamaheshwarysv/Desktop/AI_Jobs/frontend/src/index.js)
+Ensure it imports from `App_Full` (already does via [index.js](file:///Users/umaamaheshwarysv/Desktop/AI_Jobs/frontend/src/index.js) likely pointing to [App](file:///Users/umaamaheshwarysv/Desktop/AI_Jobs/frontend/src/App_Full.jsx#2119-2317)).
+
+#### [MODIFY] [index.css](file:///Users/umaamaheshwarysv/Desktop/AI_Jobs/frontend/src/index.css)
+Add additional animation keyframes for the new components.
+
+---
+
+## Verification Plan
+
+### Automated Tests
+No existing automated tests found in the frontend (`/frontend/tests` does not exist). Backend has tests in `/backend/tests/`.
+
+### Manual Verification — Browser Flow
+
+The frontend dev server is already running at `http://localhost:3000`. After changes:
+
+1. **Pre-Auth Flow Test:**
+   - Open `http://localhost:3000`
+   - Verify the Landing Page loads with hero section
+   - Click "Get Started" → verify Smart Onboarding appears with intent cards
+   - Select an intent card → verify Career Intent Detection summary shows
+   - Click "Continue" → verify Auth Gate appears with Signup/Login tabs
+   - Fill signup form and submit → verify Profile Setup appears
+   
+2. **Profile Setup Test:**  
+   - On Profile Setup, try drag-and-drop area (verify file upload UI)
+   - Click "Or create profile manually" → verify form appears
+   - Fill form and submit → verify Profile Completion Engine shows with progress ring
+
+3. **Baseline & Dashboard:**
+   - Complete baseline assessment quiz → verify score radar appears
+   - After completing, verify redirect to Career Intelligence Dashboard
+   - Confirm all existing nav items still work
+
+4. **New Pages Test:**
+   - Click "Career Path Simulation" in sidebar → verify tree visualization
+   - Click "AI Skill Recommendations" → verify AI reasoning cards
+   - Click "Learning Resources" → verify course cards with filters
+   - Click "AI Career Advisor" → verify chat interface with query buttons
+   - Click "Growth Loop" → verify streak counter and weekly digest
+
+5. **Existing Pages Regression:**
+   - Salary Intelligence, Job Matching, Skill Gap, Market Insights, Interview Prep, Progress Tracker, ATS Optimizer, Side Hustles, Portfolio must all still function

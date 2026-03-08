@@ -1,0 +1,107 @@
+version: "3.9"
+
+services:
+  # ── Backend API ──────────────────────────────────────────────────────────────
+  api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: careeriq_api
+    ports:
+      - "8000:8000"
+    environment:
+      - ENVIRONMENT=production
+      - DATABASE_URL=postgresql://careeriq:careeriq_pass@db:5432/careeriq_db
+      - REDIS_URL=redis://redis:6379/0
+      - SECRET_KEY=${SECRET_KEY:-change-me-in-production}
+      - DEBUG=false
+      - USE_SQLITE=false
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    volumes:
+      - ./backend:/app
+    restart: unless-stopped
+    networks:
+      - careeriq_net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ── Frontend ─────────────────────────────────────────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: careeriq_frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - api
+    networks:
+      - careeriq_net
+    restart: unless-stopped
+
+  # ── PostgreSQL ────────────────────────────────────────────────────────────────
+  db:
+    image: postgres:15-alpine
+    container_name: careeriq_db
+    environment:
+      - POSTGRES_USER=careeriq
+      - POSTGRES_PASSWORD=careeriq_pass
+      - POSTGRES_DB=careeriq_db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backend/init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "5432:5432"
+    networks:
+      - careeriq_net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U careeriq -d careeriq_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── Redis (caching) ───────────────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: careeriq_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - careeriq_net
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+
+  # ── Nginx reverse proxy ────────────────────────────────────────────────────────
+  nginx:
+    image: nginx:alpine
+    container_name: careeriq_nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - api
+      - frontend
+    networks:
+      - careeriq_net
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  careeriq_net:
+    driver: bridge
