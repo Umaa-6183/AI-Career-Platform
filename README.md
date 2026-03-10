@@ -979,4 +979,12 @@ MIT License. See LICENSE file for details.
 
 ---
 
-CareerIQ Pro - Empower every candidate with transparent, data-driven, and explainable career intelligence.
+CareerIQ Pro - Empower every candidate with transparent, data-driven, and explainable career intelligence. 
+
+## Acknowledgments
+* This project was inspired by and based on the concept presented in the IEEE research paper: "Efficient Resume-Based Re-Education for Career
+Recommendation in Rapidly Evolving Job Markets".
+
+* Idea Conceptualization, Implementation, coding, and development:
+UMAA MAHESHWARY SV | https://github.com/Umaa-6183/AI-Career-Platform
+
