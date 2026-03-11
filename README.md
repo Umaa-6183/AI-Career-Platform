@@ -713,8 +713,8 @@ npm start
 ### Option B - Production with Docker Compose
 
 ```bash
-git clone https://github.com/your-org/careeriq-pro.git
-cd careeriq-pro
+git clone https://github.com/.git](https://github.com/Umaa-6183/AI-Career-Platform.git
+cd AI-Career-Platform.git
 
 cp .env.example .env
 # Edit .env: set SECRET_KEY, optionally add Adzuna/JSearch API keys
