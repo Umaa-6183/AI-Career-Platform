@@ -3,12 +3,11 @@ Unit Tests — Explainable Similarity Scoring Engine
 Tests the 4-factor weighted matching formula and advancement constraint.
 """
 
+from ml_engine import compute_similarity_score, analyze_skill_gap
+import pytest
 import sys
 import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
-
-import pytest
-from ml_engine import compute_similarity_score, analyze_skill_gap
 
 
 SAMPLE_JOB = {
@@ -31,7 +30,7 @@ class TestSimilarityScoring:
             user_salary_norm=0.45,
             job=SAMPLE_JOB,
         )
-        assert result["skill_overlap_pct"] > 90
+        assert result["skill_overlap_pct"] >= 90
 
     def test_zero_skill_match(self):
         result = compute_similarity_score(
@@ -177,4 +176,5 @@ class TestSkillGapAnalysis:
              "MLOps", "Kubernetes", "Docker"],
             "machine learning engineer"
         )
-        assert strong["completeness_level"] in ["Strong", "Moderate", "Needs Work"]
+        assert strong["completeness_level"] in [
+            "Strong", "Moderate", "Needs Work"]

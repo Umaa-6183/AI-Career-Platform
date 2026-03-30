@@ -55,7 +55,7 @@ def evaluate_matching(model_path: str, test_pairs: list, top_k: int = 10) -> dic
         f"precision_at_{top_k}": round(np.mean(precisions), 4),
         f"recall_at_{top_k}": round(np.mean(recalls), 4),
         "f1_score": round(2 * np.mean(precisions) * np.mean(recalls)
-                         / max(np.mean(precisions) + np.mean(recalls), 1e-8), 4),
+                          / max(np.mean(precisions) + np.mean(recalls), 1e-8), 4),
     }
 
 

@@ -26,8 +26,9 @@ SALARY_LEVELS = {
     "L7":  {"range": (200_000, 260_000),  "label": "Distinguished",    "index": 6},
     "L8":  {"range": (260_000, 340_000),  "label": "Fellow",           "index": 7},
     "L9":  {"range": (340_000, 450_000),  "label": "Senior Fellow",    "index": 8},
-    "L10": {"range": (450_000, 1_000_000),"label": "Executive / VP",   "index": 9},
+    "L10": {"range": (450_000, 1_000_000), "label": "Executive / VP",   "index": 9},
 }
+
 
 def salary_normalize(salary: float) -> Dict:
     """
@@ -93,7 +94,8 @@ def salary_estimate_from_features(
 
     # Experience multiplier: +4.5% per year, diminishing after 15y
     exp_capped = min(years_exp, 20)
-    exp_multiplier = 1.0 + (min(exp_capped, 15) * 0.045) + (max(0, exp_capped - 15) * 0.015)
+    exp_multiplier = 1.0 + (min(exp_capped, 15) * 0.045) + \
+        (max(0, exp_capped - 15) * 0.015)
 
     # High-value skill bonuses
     SKILL_PREMIUMS = {
@@ -195,15 +197,18 @@ SKILL_TAXONOMY = {
     ],
 }
 
-FLAT_SKILLS = {skill: category for category, skills in SKILL_TAXONOMY.items() for skill in skills}
+FLAT_SKILLS = {skill: category for category,
+               skills in SKILL_TAXONOMY.items() for skill in skills}
 
 PII_PATTERNS = [
+    # SSN FIRST — must precede phone
+    (r'\b\d{3}-\d{2}-\d{4}\b', '[SSN REDACTED]'),
     (r'\b[A-Z][a-z]+\s+[A-Z][a-z]+\b', '[NAME REDACTED]'),
     (r'\b[\w.+-]+@[\w-]+\.[\w.]+\b', '[EMAIL REDACTED]'),
-    (r'\b(\+?\d[\d\s\-().]{8,}\d)\b', '[PHONE REDACTED]'),
+    (r'\b(\+?1[-.\s]?)?\(?\d{3}\)?[-.\s]\d{3}[-.\s]\d{4}\b',
+     '[PHONE REDACTED]'),
     (r'\bhttps?://[^\s]+\b', '[URL REDACTED]'),
     (r'\b\d{4}\s?\d{4}\s?\d{4}\s?\d{4}\b', '[CARD REDACTED]'),
-    (r'\b\d{3}-\d{2}-\d{4}\b', '[SSN REDACTED]'),
 ]
 
 
@@ -228,7 +233,8 @@ def extract_skills(text: str) -> List[Dict]:
         pattern = r'\b' + re.escape(skill) + r'\b'
         if re.search(pattern, text_lower) and skill not in seen:
             seen.add(skill)
-            found.append({"skill": skill.title(), "category": category, "raw": skill})
+            found.append(
+                {"skill": skill.title(), "category": category, "raw": skill})
     return sorted(found, key=lambda x: x["category"])
 
 
@@ -326,6 +332,7 @@ SIMILARITY_WEIGHTS = {
     "salary_band_compatibility": 0.20,
 }
 
+
 def compute_similarity_score(
     user_skills: List[str],
     user_years: int,
@@ -341,12 +348,13 @@ def compute_similarity_score(
     """
     user_lower = [s.lower() for s in user_skills]
     job_skills = job.get("required_skills", [])
-    preferred  = job.get("preferred_skills", [])
+    preferred = job.get("preferred_skills", [])
 
     # w1: Skill Overlap
     required_matched = [s for s in job_skills if s.lower() in user_lower]
     preferred_matched = [s for s in preferred if s.lower() in user_lower]
-    skill_overlap = (len(required_matched) + 0.5 * len(preferred_matched)) / max(len(job_skills) + 0.5 * len(preferred), 1)
+    skill_overlap = (len(required_matched) + 0.5 * len(preferred_matched)
+                     ) / max(len(job_skills) + 0.5 * len(preferred), 1)
 
     # w2: Experience Relevance
     job_exp_min = job.get("experience_years_min", 0)
@@ -363,7 +371,8 @@ def compute_similarity_score(
 
     # w4: Salary Band Compatibility
     job_mid_salary = sum(job.get("salary_range", [0, 0])) / 2
-    job_norm = salary_normalize(job_mid_salary) if job_mid_salary else {"normalized_score": 0}
+    job_norm = salary_normalize(job_mid_salary) if job_mid_salary else {
+        "normalized_score": 0}
     job_norm_score = job_norm["normalized_score"]
 
     # Advancement constraint check
@@ -373,10 +382,10 @@ def compute_similarity_score(
 
     # Composite score
     composite = (
-        SIMILARITY_WEIGHTS["skill_overlap"]            * skill_overlap +
-        SIMILARITY_WEIGHTS["experience_relevance"]     * exp_relevance +
-        SIMILARITY_WEIGHTS["industry_alignment"]       * industry_alignment +
-        SIMILARITY_WEIGHTS["salary_band_compatibility"]* salary_compat
+        SIMILARITY_WEIGHTS["skill_overlap"] * skill_overlap +
+        SIMILARITY_WEIGHTS["experience_relevance"] * exp_relevance +
+        SIMILARITY_WEIGHTS["industry_alignment"] * industry_alignment +
+        SIMILARITY_WEIGHTS["salary_band_compatibility"] * salary_compat
     )
 
     return {
@@ -508,10 +517,10 @@ def compute_learning_score(resource: Dict) -> float:
     Learning Score = Relevance × Rating × Popularity × Skill Coverage
     Normalized to 0-100
     """
-    relevance    = resource.get("relevance", 0.8)
-    rating       = resource.get("rating", 3.5) / 5.0
-    popularity   = min(resource.get("review_count", 100) / 10000, 1.0)
-    skill_cov    = resource.get("skill_coverage", 0.7)
+    relevance = resource.get("relevance", 0.8)
+    rating = resource.get("rating", 3.5) / 5.0
+    popularity = min(resource.get("review_count", 100) / 10000, 1.0)
+    skill_cov = resource.get("skill_coverage", 0.7)
     raw = relevance * rating * popularity * skill_cov * 100_000
     return round(min(raw, 100), 1)
 
