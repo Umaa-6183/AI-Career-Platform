@@ -305,7 +305,7 @@ class GeminiChatRequest(BaseModel):
 
 
 SALARY_LEVELS = {
-    "L1":  {"range": (300_000,   600_000),  "label": "Fresher / Trainee",    "index": 0},
+    "L1":  {"range": (100_000,   600_000),  "label": "Fresher / Trainee",    "index": 0},
     "L2":  {"range": (600_000,  1_000_000), "label": "Junior Engineer",      "index": 1},
     "L3":  {"range": (1_000_000, 1_600_000), "label": "Mid-Level Engineer",   "index": 2},
     "L4":  {"range": (1_600_000, 2_500_000), "label": "Senior Engineer",      "index": 3},
@@ -1035,9 +1035,24 @@ async def register(req: UserOnboardRequest, db: Session = Depends(get_db)):
     email_hash = hashlib.sha256(req.email.encode()).hexdigest()
     existing = db.query(DBUser).filter(DBUser.email_hash == email_hash).first()
     if existing:
-        return {"status": "success", "user_id": existing.id, "message": "Existing user", "user": {
+        nm = normalize_salary(req.current_salary)
+        existing.name_alias = req.name
+        existing.current_role = req.current_role
+        existing.target_role = req.target_role
+        existing.experience_years = req.experience_years
+        existing.location = req.location
+        existing.current_salary = req.current_salary
+        existing.salary_level = nm["level"]
+        existing.skills = req.skills
+        existing.goals = req.goals
+        db.commit()
+        db.refresh(existing)
+        return {"status": "success", "user_id": existing.id, "message": "Profile updated", "user": {
             "name": existing.name_alias, "current_role": existing.current_role,
-            "target_role": existing.target_role, "skills": existing.skills, "id": existing.id
+            "target_role": existing.target_role, "skills": existing.skills, "id": existing.id,
+            "experience_years": existing.experience_years, "location": existing.location,
+            "current_salary": existing.current_salary, "salary_level": existing.salary_level,
+            "goals": existing.goals
         }}
     nm = normalize_salary(req.current_salary)
     user = DBUser(
@@ -1071,7 +1086,10 @@ async def register(req: UserOnboardRequest, db: Session = Depends(get_db)):
     return {"status": "success", "user_id": user.id, "message": "User created",
             "salary_benchmark": sal_est, "level": nm["level"], "user": {
                 "name": user.name_alias, "current_role": user.current_role,
-                "target_role": user.target_role, "skills": user.skills, "id": user.id
+                "target_role": user.target_role, "skills": user.skills, "id": user.id,
+                "experience_years": user.experience_years, "location": user.location,
+                "current_salary": user.current_salary, "salary_level": user.salary_level,
+                "goals": user.goals
             }}
 
 

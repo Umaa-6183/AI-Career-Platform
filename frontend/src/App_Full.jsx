@@ -117,7 +117,7 @@ const REAL_COURSES = [
 ];
 
 const SALARY_LEVELS = {
-  L1: { range: [300000, 600000], label: "Fresher / Trainee" },
+  L1: { range: [100000, 600000], label: "Fresher / Trainee" },
   L2: { range: [600000, 1000000], label: "Junior Engineer" },
   L3: { range: [1000000, 1600000], label: "Mid-Level Engineer" },
   L4: { range: [1600000, 2500000], label: "Senior Engineer" },
@@ -191,15 +191,17 @@ const MOCK_JOBS = generateMockJobs();
 // ─── DYNAMIC GENERATORS FOR REAL-TIME SIMULATION ────────────────────────────────
 
 const CORE_SKILLS = {
-  "Software Engineer": ["JavaScript", "Python", "React", "Node.js", "Java", "Go", "AWS", "Docker"],
+  "Software Engineer": ["JavaScript", "Python", "React", "Node.js", "SQL", "Git", "Docker", "AWS"],
   "Backend Developer": ["Python", "Java", "Go", "Node.js", "SQL", "Redis", "Kafka", "PostgreSQL", "MongoDB"],
   "Frontend Developer": ["React", "Vue", "Angular", "TypeScript", "CSS", "Next.js", "Tailwind", "Redux"],
   "Data Scientist": ["Python", "SQL", "Machine Learning", "TensorFlow", "Pandas", "PyTorch", "Tableau", "Statistics"],
   "Machine Learning Engineer": ["Python", "PyTorch", "TensorFlow", "AWS", "MLOps", "Docker", "Kubernetes", "C++"],
+  "AI Engineer": ["Python", "PyTorch", "TensorFlow", "Generative AI", "LLM", "AWS", "MLOps", "Docker"],
   "Data Engineer": ["Python", "SQL", "Spark", "Kafka", "Airflow", "AWS", "Snowflake", "Databricks"],
   "DevOps Engineer": ["AWS", "Docker", "Kubernetes", "Terraform", "CI/CD", "Linux", "Python", "Bash"],
   "Cloud Architect": ["AWS", "Azure", "GCP", "Kubernetes", "Terraform", "System Design", "Networking", "Security"],
   "Product Manager": ["Agile", "Scrum", "Jira", "Product Strategy", "Data Analysis", "SQL", "User Research", "A/B Testing"],
+  "HR / Recruiter": ["Applicant Tracking", "Interviewing", "Sourcing", "Conflict Resolution", "Agile", "Strategy"],
   "Default": ["Leadership", "Communication", "Project Management", "Problem Solving", "Agile", "Strategy"]
 };
 
@@ -210,8 +212,37 @@ const calculateRoleBaseSalary = (role) => {
   if (role.includes("Principal") || role.includes("Architect")) return 2500000;
   if (role.includes("Lead") || role.includes("Manager")) return 1800000;
   if (role.includes("Senior") || role.includes("Scientist") || role.includes("Machine Learning")) return 1500000;
-  return 800000;
+  return 450000;
 };
+
+// HELPER: Unified status calculation for Dashboard, Salary Intel, and Career Map
+const getUnifiedUserStatus = (user) => {
+  const roleBase = calculateRoleBaseSalary(user.current_role);
+  const multiplier = Math.max(0.5, Math.min(2.5, roleBase / 1200000));
+
+  // Scale levels based on role
+  const scaledLevels = Object.entries(SALARY_LEVELS).reduce((acc, [k, v]) => {
+    acc[k] = {
+      label: v.label,
+      range: [Math.round(v.range[0] * multiplier), Math.round(v.range[1] * multiplier)]
+    };
+    return acc;
+  }, {});
+
+  const salary = (user.current_salary && user.current_salary > 0) ? user.current_salary : 100000;
+
+  const getLevel = s => {
+    // Fresher Guard: If 0 exp and salary is in entry range, it MUST be L1
+    if (user.experience_years <= 1 && s <= 450000) return "L1";
+    if (s <= 300000) return "L1";
+    for (const [l, d] of Object.entries(scaledLevels)) if (s >= d.range[0] && s < d.range[1]) return l;
+    return s < scaledLevels.L1.range[0] ? "L1" : "L10";
+  };
+
+  const level = getLevel(salary);
+  return { level, salary, multiplier, scaledLevels, skillsCount: (user.skills || []).length };
+};
+
 
 // Generates statistically "real" formatted data based directly on string
 const generateMarketData = (role) => {
@@ -237,12 +268,17 @@ const generateMarketData = (role) => {
 };
 
 const generateSkillGap = (currentRole, targetRole, currentUserSkills = []) => {
-  const targetSkills = CORE_SKILLS[targetRole] || CORE_SKILLS[Object.keys(CORE_SKILLS).find(k => targetRole?.includes?.(k))] || CORE_SKILLS["Default"];
-  const currRoleKey = Object.keys(CORE_SKILLS).find(k => currentRole?.includes?.(k)) || "Default";
-  const currentRoleSkills = CORE_SKILLS[currRoleKey] || [];
+  const tRoleStr = targetRole?.toLowerCase() || "";
+  const cRoleStr = currentRole?.toLowerCase() || "";
 
-  // Create a combined simulated set of skills the user realistically has
-  const simulatedUserSkills = [...new Set([...currentUserSkills, ...currentRoleSkills])];
+  const targetKey = Object.keys(CORE_SKILLS).find(k => tRoleStr.includes(k.toLowerCase())) || "Default";
+  const currentKey = Object.keys(CORE_SKILLS).find(k => cRoleStr.includes(k.toLowerCase())) || "Default";
+
+  const targetSkills = CORE_SKILLS[targetKey];
+  const currentRoleSkills = CORE_SKILLS[currentKey] || [];
+
+  // Use provided skills or fall back to an empty set for freshers
+  const simulatedUserSkills = (currentUserSkills && currentUserSkills.length > 0) ? currentUserSkills : [];
 
   const have = targetSkills.filter(s => simulatedUserSkills.includes(s));
   const missing = targetSkills.filter(s => !simulatedUserSkills.includes(s));
@@ -255,7 +291,7 @@ const generateSkillGap = (currentRole, targetRole, currentUserSkills = []) => {
 
   return {
     match_score: score,
-    skills_have: have.length > 0 ? have : simulatedUserSkills.slice(0, 3),
+    skills_have: have,
     skills_missing: missing.length > 0 ? missing.slice(0, 6) : ["Advanced System Design", "Domain Expertise"],
     skills_priority: missing.length > 0 ? missing.slice(0, 3) : ["Advanced Topic"],
     soft_skills_needed: ["Leadership", "Cross-functional Collaboration", "Strategic Thinking", "Mentoring"].sort(() => 0.5 - Math.random()).slice(0, 3),
@@ -472,8 +508,8 @@ const LandingPage = ({ onStart }) => {
   const [step, setStep] = useState(1);
   const [form, setForm] = useState({
     name: "", email: "", password: "",
-    current_role: "", target_role: "", experience_years: 2,
-    current_salary: 1200000, location: "Bangalore", skills: [], goal: ""
+    current_role: "", target_role: "", experience_years: 0,
+    current_salary: 100000, location: "Bangalore", skills: [], goal: ""
   });
   const [skillInput, setSkillInput] = useState("");
   const [err, setErr] = useState({});
@@ -503,7 +539,7 @@ const LandingPage = ({ onStart }) => {
   const submit = async () => {
     if (!validateStep()) return;
     const data = await apiCall("/api/auth/register", { method: "POST", body: JSON.stringify(form) });
-    const user = data?.user || { ...form, id: `u_${Date.now()}`, created_at: new Date().toISOString() };
+    const user = { ...form, ...(data?.user || {}), id: data?.user?.id || `u_${Date.now()}` };
     onStart(user);
   };
 
@@ -615,10 +651,10 @@ const LandingPage = ({ onStart }) => {
                 <label style={{ fontSize: 12, fontWeight: 600, color: C.textMuted, display: "block", marginBottom: 4 }}>
                   Current Annual Salary: <strong style={{ color: C.green }}>{fmtINR(form.current_salary)}</strong>
                 </label>
-                <input type="range" min={300000} max={20000000} step={100000} value={form.current_salary}
+                <input type="range" min={100000} max={20000000} step={50000} value={form.current_salary}
                   onChange={e => setForm(p => ({ ...p, current_salary: +e.target.value }))} style={{ width: "100%", accentColor: C.green }} />
                 <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: C.textMuted, marginTop: 2 }}>
-                  <span>₹3L</span><span>₹2Cr+</span>
+                  <span>₹1L</span><span>₹2Cr+</span>
                 </div>
               </div>
               <div>
@@ -700,13 +736,7 @@ const LandingPage = ({ onStart }) => {
 const Dashboard = ({ user, onNavigate }) => {
   const { getTotalImpact } = useProgress();
   const impact = getTotalImpact();
-  const salary = user.current_salary || 1200000;
-
-  const getLevel = s => {
-    for (const [l, d] of Object.entries(SALARY_LEVELS)) if (s >= d.range[0] && s < d.range[1]) return l;
-    return "L10";
-  };
-  const level = getLevel(salary);
+  const { level, salary, skillsCount } = getUnifiedUserStatus(user);
 
   return (
     <div style={{ animation: "fadeUp 0.4s ease both" }}>
@@ -722,7 +752,7 @@ const Dashboard = ({ user, onNavigate }) => {
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(150px,1fr))", gap: 12, marginBottom: 20 }}>
         {[
           { icon: DollarSign, label: "Salary Level", value: level, sub: fmtINR(salary) + " / yr", color: C.blue, delay: 0, page: "salary" },
-          { icon: Target, label: "Skills Added", value: user.skills?.length || 0, sub: "from profile", color: C.purple, delay: 100, page: "skills" },
+          { icon: Target, label: "Skills Added", value: skillsCount, sub: "from profile", color: C.purple, delay: 100, page: "skills" },
           { icon: Activity, label: "Courses Active", value: impact.inProgress, sub: `${impact.completed} completed`, color: C.green, delay: 200, page: "tracker" },
           { icon: Briefcase, label: "Job Matches", value: MOCK_JOBS.length, sub: "≥74% match", color: C.orange, delay: 300, page: "jobs" },
         ].map(s => (
@@ -741,7 +771,10 @@ const Dashboard = ({ user, onNavigate }) => {
             <div style={{ width: 36, height: 36, borderRadius: 10, background: C.blueLight, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
               <User size={18} color={C.blue} />
             </div>
-            <div><div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>{user.current_role}</div><div style={{ fontSize: 11, color: C.textMuted }}>Current — {level}</div></div>
+            <div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>{user.current_role}</div>
+              <div style={{ fontSize: 11, color: C.textMuted }}>{user.experience_years <= 1 ? "Fresher — L1-L2" : `Current — ${level}`}</div>
+            </div>
           </div>
           <div style={{ textAlign: "center", color: C.textLight, fontSize: 12, margin: "4px 0" }}>↓ Growth Path</div>
           <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 14px", background: C.greenLight, border: `1px solid ${C.greenBorder}`, borderRadius: 10 }}>
@@ -952,7 +985,7 @@ Resume: ${resumeText.slice(0, 2000)}`;
     } : {
       ats_score: 74, quality_score: 71,
       extracted_skills: user.skills || ["Python", "React", "SQL"],
-      experience_years: user.experience_years || 3,
+      experience_years: user.experience_years ?? 0,
       salary_estimate: (user.current_salary || 1200000) * 1.12,
       salary_low: (user.current_salary || 1200000) * 0.9,
       salary_high: (user.current_salary || 1200000) * 1.35,
@@ -990,7 +1023,7 @@ JD: ${atsJD.slice(0, 800)}`;
   const enhanceWithAI = async () => {
     setAiEnhancing(true);
     const prompt = `Write a powerful 3-sentence professional summary for an Indian tech resume:
-Name: ${builderForm.name}, Role: ${builderForm.role || user.current_role}, Skills: ${builderForm.skills}, Experience: ${user.experience_years || 3} years, Target: ${user.target_role}
+Name: ${builderForm.name}, Role: ${builderForm.role || user.current_role}, Skills: ${builderForm.skills}, Experience: ${user.experience_years ?? 0} years, Target: ${user.target_role}
 Return ONLY the summary text, no preamble.`;
     const summary = await callGemini(prompt);
     if (summary) setBuilderForm(p => ({ ...p, summary: summary.trim() }));
@@ -1251,14 +1284,18 @@ ${builderForm.certifications ? `CERTIFICATIONS\n${builderForm.certifications}` :
 
 // ─── SALARY INTELLIGENCE ──────────────────────────────────────────────────────
 const SalaryIntelligence = ({ user }) => {
-  const levels = Object.entries(SALARY_LEVELS);
-  const salary = user.current_salary || 1200000;
-  const getLevel = s => { for (const [l, d] of levels) if (s >= d.range[0] && s < d.range[1]) return l; return "L10"; };
-  const currentLevel = getLevel(salary);
+  const { level: currentLevel, salary, multiplier, scaledLevels } = getUnifiedUserStatus(user);
+  const levels = Object.entries(scaledLevels);
   const currentIdx = levels.findIndex(([k]) => k === currentLevel);
-  const normScore = Math.round(currentIdx / (levels.length - 1) * 100);
+  // UNIFIED SCORE: Score is level-based 0-100
+  const normScore = Math.max(5, Math.round((currentIdx / (levels.length - 1)) * 100));
   const colors = [CH.blue, CH.blue, CH.orange, CH.orange, CH.purple, CH.purple, CH.pink, CH.pink, CH.green, CH.green];
-  const barData = levels.map(([l, d]) => ({ level: l, label: d.label, mid: Math.round((d.range[0] + d.range[1]) / 2 / 100000), isCurrent: l === currentLevel }));
+  const barData = levels.map(([l, d]) => ({
+    level: l,
+    label: d.label,
+    mid: Math.round(((d.range[0] + d.range[1]) / 2) / 100000),
+    isCurrent: l === currentLevel
+  }));
 
   return (
     <div style={{ animation: "fadeUp 0.4s ease both" }}>
@@ -2129,7 +2166,7 @@ const CareerNetworkMap = ({ user }) => {
 
   const path = rolePathMap[currentRole] || ["Senior Engineer", "Staff Engineer", "Principal Engineer", "VP Engineering"];
   const allNodes = [
-    { id: "current", label: currentRole, level: user.experience_years <= 3 ? "L2–L3" : user.experience_years <= 6 ? "L3–L4" : "L4–L5", salary: user.current_salary || 1200000, current: true },
+    { id: "current", label: currentRole, level: user.experience_years <= 1 ? "L1-L2" : user.experience_years <= 3 ? "L2–L3" : user.experience_years <= 6 ? "L3–L4" : "L4–L5", salary: user.current_salary || 300000, current: true },
     ...path.map((role, i) => ({ id: `n${i}`, label: role, level: `L${Math.min(10, 4 + i)}–L${Math.min(10, 5 + i)}`, salary: (user.current_salary || 1200000) * Math.pow(1.35, i + 1), isTarget: role === targetRole }))
   ];
   const nodeColors = [C.blue, C.purple, C.orange, C.pink, C.green];
@@ -2238,7 +2275,7 @@ const CommunityBenchmarking = ({ user }) => {
         </Card>
         <Card>
           <div style={{ fontWeight: 700, fontSize: 14, color: C.text, marginBottom: 14 }}>Your Position vs. Peers</div>
-          {[{ label: "Salary Percentile", value: `${userPercentile}th`, prog: userPercentile, color: C.blue }, { label: "Skill Coverage", value: `${Math.round(((user.skills?.length || 3) / 20) * 100)}%`, prog: Math.round(((user.skills?.length || 3) / 20) * 100), color: C.purple }, { label: "Experience Rank", value: `${Math.round((user.experience_years || 3) / 12 * 100)}%`, prog: Math.round((user.experience_years || 3) / 12 * 100), color: C.orange }].map(m => (
+          {[{ label: "Salary Percentile", value: `${userPercentile}th`, prog: userPercentile, color: C.blue }, { label: "Skill Coverage", value: `${Math.round(((user.skills?.length || 0) / 20) * 100)}%`, prog: Math.round(((user.skills?.length || 0) / 20) * 100), color: C.purple }, { label: "Experience Rank", value: `${Math.round((user.experience_years || 0) / 12 * 100)}%`, prog: Math.round((user.experience_years || 0) / 12 * 100), color: C.orange }].map(m => (
             <div key={m.label} style={{ marginBottom: 14 }}>
               <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}><span style={{ fontSize: 13, fontWeight: 600, color: C.textMid }}>{m.label}</span><span style={{ fontSize: 13, fontWeight: 800, color: m.color }}>{m.value}</span></div>
               <ProgressBar value={m.prog} color={m.color} height={8} />
@@ -2415,7 +2452,7 @@ Return ONLY the description text.`;
           </div>
           <div style={{ padding: "clamp(20px,4vw,40px) clamp(16px,4vw,28px)" }}>
             <div style={{ fontWeight: 800, fontSize: "clamp(24px,5vw,36px)", color: "white", marginBottom: 8 }}>Hi, I'm {user.name?.split(" ")[0] || "Arjun"} 👋</div>
-            <div style={{ fontSize: 16, color: "#94A3B8", marginBottom: 32 }}>{user.current_role} · {user.location} · {user.experience_years || 3}y experience</div>
+            <div style={{ fontSize: 16, color: "#94A3B8", marginBottom: 32 }}>{user.current_role} · {user.location} · {user.experience_years ?? 0}y experience</div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(240px,1fr))", gap: 20 }}>
               {projects.filter(p => p.status === "published").map(proj => (
                 <div key={proj.id} style={{ background: "#1E293B", borderRadius: 14, padding: "20px", border: "1px solid #334155", cursor: "pointer", transition: "all 0.2s" }}
