@@ -69,3 +69,5 @@ uploads/
 temp/
 
 backend/data/
+backend/.env
+frontend/.env

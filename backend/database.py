@@ -162,7 +162,7 @@ class DBUser(Base):
 
     id = Column(String(36),  primary_key=True, default=_new_id)
     email_hash = Column(String(64),  unique=True, index=True, nullable=False)
-    name_alias = Column(String(80),  nullable=False)          # "Alex C." only
+    name = Column(String(80),  nullable=False)                # "Alex C." only
     current_role = Column(String(120))
     target_role = Column(String(120))
     experience_years = Column(Integer,     default=0)
@@ -661,7 +661,7 @@ def seed_demo_user(db: Session) -> Optional[DBUser]:
 
     user = DBUser(
         email_hash=demo_email_hash,
-        name_alias="Demo User",
+        name="Demo User",
         current_role="Software Engineer",
         target_role="Senior ML Engineer",
         experience_years=4,

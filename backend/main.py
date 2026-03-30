@@ -32,9 +32,9 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import sessionmaker, relationship, declarative_base, Session
 from google import genai
-# ─────────────────────────────────────────────────────────────────────────────
-# ENV / CONFIG
-# ─────────────────────────────────────────────────────────────────────────────
+
+from dotenv import load_dotenv
+load_dotenv()
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
 RAPIDAPI_KEY = os.getenv("RAPIDAPI_KEY", "")        # JSearch job API
@@ -44,8 +44,7 @@ FRONTEND_URL = os.getenv("FRONTEND_URL", "*")
 SECRET_KEY = os.getenv("SECRET_KEY", "careeriq-secret-change-in-prod")
 
 # Configure Gemini
-if GEMINI_API_KEY:
-    genai.configure(api_key=GEMINI_API_KEY)
+client = genai.Client(api_key=GEMINI_API_KEY)
 
 # ─────────────────────────────────────────────────────────────────────────────
 # DATABASE
@@ -206,7 +205,7 @@ def init_db():
 
 
 class UserOnboardRequest(BaseModel):
-    name_alias:       str
+    name:             str
     email:            str
     current_role:     str
     target_role:      str
@@ -1031,19 +1030,19 @@ async def health():
 # ─── User Onboarding ──────────────────────────────────────────────────────────
 
 
-@app.post("/api/user/onboard")
-async def onboard_user(req: UserOnboardRequest, db: Session = Depends(get_db)):
+@app.post("/api/auth/register")
+async def register(req: UserOnboardRequest, db: Session = Depends(get_db)):
     email_hash = hashlib.sha256(req.email.encode()).hexdigest()
     existing = db.query(DBUser).filter(DBUser.email_hash == email_hash).first()
     if existing:
         return {"status": "success", "user_id": existing.id, "message": "Existing user", "user": {
-            "name_alias": existing.name_alias, "current_role": existing.current_role,
-            "target_role": existing.target_role, "skills": existing.skills,
+            "name": existing.name_alias, "current_role": existing.current_role,
+            "target_role": existing.target_role, "skills": existing.skills, "id": existing.id
         }}
     nm = normalize_salary(req.current_salary)
     user = DBUser(
         email_hash=email_hash,
-        name_alias=req.name_alias,
+        name_alias=req.name,
         current_role=req.current_role,
         target_role=req.target_role,
         experience_years=req.experience_years,
@@ -1070,7 +1069,10 @@ async def onboard_user(req: UserOnboardRequest, db: Session = Depends(get_db)):
     db.add(sh)
     db.commit()
     return {"status": "success", "user_id": user.id, "message": "User created",
-            "salary_benchmark": sal_est, "level": nm["level"]}
+            "salary_benchmark": sal_est, "level": nm["level"], "user": {
+                "name": user.name_alias, "current_role": user.current_role,
+                "target_role": user.target_role, "skills": user.skills, "id": user.id
+            }}
 
 
 @app.get("/api/user/profile/{user_id}")
@@ -1079,7 +1081,7 @@ async def get_user_profile(user_id: str, db: Session = Depends(get_db)):
     if not user:
         raise HTTPException(404, "User not found")
     return {"status": "success", "profile": {
-        "id": user.id, "name_alias": user.name_alias,
+        "id": user.id, "name": user.name_alias,
         "current_role": user.current_role, "target_role": user.target_role,
         "experience_years": user.experience_years, "location": user.location,
         "current_salary": user.current_salary, "salary_level": user.salary_level,
@@ -1588,6 +1590,11 @@ async def market_insights():
     }
 
 # ─── Benchmarking + Peer Comparison ───────────────────────────────────────────
+
+
+@app.get("/api/benchmarking")
+async def get_benchmarking(role: str = "Software Engineer", salary: float = 1_200_000):
+    return await benchmark({"role": role, "current_salary": salary})
 
 
 @app.post("/api/market/benchmark")
