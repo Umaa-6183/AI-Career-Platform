@@ -67,3 +67,5 @@ models/
 # ─── Uploads (runtime) ───────────────────────────────────────────────────────
 uploads/
 temp/
+
+backend/data/
