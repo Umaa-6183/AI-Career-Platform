@@ -129,13 +129,140 @@ const SALARY_LEVELS = {
   L10: { range: [22000000, 60000000], label: "VP / CTO" },
 };
 
-const MOCK_JOBS = [
-  { id: "j1", title: "Senior ML Engineer", company: "Google India", salary_range: [4000000, 7000000], location: "Bangalore", industry: "AI/Cloud", remote: "Hybrid", exp: "4–8 yrs", match: { score: 88.5, skill_overlap: 75, matched_skills: ["Python", "TensorFlow"], missing_skills: ["MLOps"], advancement_guaranteed: true, salary_normalization: { level: "L5", normalized_score: 0.52 } } },
-  { id: "j2", title: "Staff Data Scientist", company: "Flipkart", salary_range: [3500000, 6000000], location: "Bangalore", industry: "E-commerce", remote: "On-site", exp: "5–9 yrs", match: { score: 82.1, skill_overlap: 68, matched_skills: ["Python", "SQL"], missing_skills: ["Apache Spark"], advancement_guaranteed: true, salary_normalization: { level: "L5", normalized_score: 0.48 } } },
-  { id: "j3", title: "Principal Backend Eng", company: "Swiggy", salary_range: [3800000, 6500000], location: "Bangalore", industry: "Food Tech", remote: "Hybrid", exp: "6–12 yrs", match: { score: 79.4, skill_overlap: 62, matched_skills: ["Python", "AWS"], missing_skills: ["Kafka"], advancement_guaranteed: true, salary_normalization: { level: "L5", normalized_score: 0.51 } } },
-  { id: "j4", title: "AI Research Engineer", company: "Microsoft India", salary_range: [5000000, 9000000], location: "Hyderabad", industry: "AI/Cloud", remote: "Hybrid", exp: "5–10 yrs", match: { score: 76.8, skill_overlap: 71, matched_skills: ["Python", "PyTorch"], missing_skills: ["MLOps"], advancement_guaranteed: true, salary_normalization: { level: "L6", normalized_score: 0.61 } } },
-  { id: "j5", title: "Senior Data Engineer", company: "Razorpay", salary_range: [2500000, 4500000], location: "Bangalore", industry: "Fintech", remote: "Hybrid", exp: "3–7 yrs", match: { score: 74.2, skill_overlap: 65, matched_skills: ["Python", "SQL"], missing_skills: ["dbt"], advancement_guaranteed: true, salary_normalization: { level: "L4", normalized_score: 0.38 } } },
-];
+const generateMockJobs = () => {
+  const companies = ["Google India", "Microsoft", "Amazon", "Flipkart", "Swiggy", "Razorpay", "CRED", "PhonePe", "Zomato", "Uber", "Atlassian", "Adobe", "Intuit", "Paytm", "MakeMyTrip"];
+  const locations = ["Bangalore", "Hyderabad", "Pune", "Gurgaon", "Mumbai", "Chennai", "Remote"];
+  const industries = ["E-commerce", "Fintech", "AI/Cloud", "Food Tech", "SaaS", "Mobility", "EdTech"];
+  const remotes = ["Remote", "Hybrid", "On-site"];
+
+  const jobs = [];
+
+  for (let i = 1; i <= 60; i++) {
+    const role = JOB_ROLES[i % JOB_ROLES.length];
+    const company = companies[Math.floor(Math.random() * companies.length)];
+    const location = locations[Math.floor(Math.random() * locations.length)];
+    const industry = industries[Math.floor(Math.random() * industries.length)];
+    const remote = remotes[Math.floor(Math.random() * remotes.length)];
+
+    // Level & Salary Approximation
+    const levelNum = Math.floor(Math.random() * 5) + 2;
+    const levelKey = `L${levelNum}`; // L2 to L6
+    const levelData = SALARY_LEVELS[levelKey] || SALARY_LEVELS["L3"];
+
+    // Realistic prefix based on level
+    const prefixes = { L2: "Junior", L3: "", L4: "Senior", L5: "Staff", L6: "Principal" };
+    const prefix = prefixes[levelKey];
+    const cleanRole = role.replace(/Senior |Junior |Staff |Principal /g, "");
+    const title = prefix ? `${prefix} ${cleanRole}` : cleanRole;
+
+    const base = levelData.range[0];
+    const top = levelData.range[1];
+
+    const salMin = Math.floor(base + Math.random() * (top - base) * 0.4);
+    const salMax = Math.floor(salMin + Math.random() * (top - salMin));
+
+    const expMin = Math.floor(Math.random() * 6) + (levelNum > 3 ? levelNum * 1.5 : 1);
+    const expMax = Math.floor(expMin) + Math.floor(Math.random() * 4) + 2;
+
+    jobs.push({
+      id: `j${i}`,
+      title,
+      company,
+      salary_range: [salMin, salMax],
+      location,
+      industry,
+      remote,
+      exp: `${Math.floor(expMin)}–${expMax} yrs`,
+      match: {
+        score: Math.floor(65 + Math.random() * 30),
+        skill_overlap: Math.floor(50 + Math.random() * 40),
+        matched_skills: [role.includes("Data") || role.includes("ML") ? "Python" : "JavaScript", "SQL", "AWS", "React", "Node.js"].sort(() => 0.5 - Math.random()).slice(0, Math.floor(Math.random() * 3) + 2),
+        missing_skills: ["Docker", "Kubernetes", "Kafka", "GraphDB", "MLOps", "Go"].sort(() => 0.5 - Math.random()).slice(0, Math.floor(Math.random() * 3) + 1),
+        advancement_guaranteed: Math.random() > 0.5,
+        salary_normalization: { level: levelKey, normalized_score: parseFloat(Math.random().toFixed(2)) }
+      }
+    });
+  }
+  return jobs.sort((a, b) => b.match.score - a.match.score);
+};
+
+const MOCK_JOBS = generateMockJobs();
+
+// ─── DYNAMIC GENERATORS FOR REAL-TIME SIMULATION ────────────────────────────────
+
+const CORE_SKILLS = {
+  "Software Engineer": ["JavaScript", "Python", "React", "Node.js", "Java", "Go", "AWS", "Docker"],
+  "Backend Developer": ["Python", "Java", "Go", "Node.js", "SQL", "Redis", "Kafka", "PostgreSQL", "MongoDB"],
+  "Frontend Developer": ["React", "Vue", "Angular", "TypeScript", "CSS", "Next.js", "Tailwind", "Redux"],
+  "Data Scientist": ["Python", "SQL", "Machine Learning", "TensorFlow", "Pandas", "PyTorch", "Tableau", "Statistics"],
+  "Machine Learning Engineer": ["Python", "PyTorch", "TensorFlow", "AWS", "MLOps", "Docker", "Kubernetes", "C++"],
+  "Data Engineer": ["Python", "SQL", "Spark", "Kafka", "Airflow", "AWS", "Snowflake", "Databricks"],
+  "DevOps Engineer": ["AWS", "Docker", "Kubernetes", "Terraform", "CI/CD", "Linux", "Python", "Bash"],
+  "Cloud Architect": ["AWS", "Azure", "GCP", "Kubernetes", "Terraform", "System Design", "Networking", "Security"],
+  "Product Manager": ["Agile", "Scrum", "Jira", "Product Strategy", "Data Analysis", "SQL", "User Research", "A/B Testing"],
+  "Default": ["Leadership", "Communication", "Project Management", "Problem Solving", "Agile", "Strategy"]
+};
+
+// Extrapolate a base salary dynamically tuned to standard roles
+const calculateRoleBaseSalary = (role) => {
+  if (!role) return 1200000;
+  if (role.includes("Chief") || role.includes("VP")) return 4000000;
+  if (role.includes("Principal") || role.includes("Architect")) return 2500000;
+  if (role.includes("Lead") || role.includes("Manager")) return 1800000;
+  if (role.includes("Senior") || role.includes("Scientist") || role.includes("Machine Learning")) return 1500000;
+  return 800000;
+};
+
+// Generates statistically "real" formatted data based directly on string
+const generateMarketData = (role) => {
+  const skills = CORE_SKILLS[role] || CORE_SKILLS[Object.keys(CORE_SKILLS).find(k => role.includes(k))] || CORE_SKILLS["Default"];
+  const trending = skills.slice(0, 4).map((skill, i) => ({
+    skill,
+    demand_growth: `+${Math.floor(40 + Math.random() * 80)}%`,
+    avg_salary_premium: `₹${(i + 2)}L–₹${(i + 5)}L`,
+    premium_amount: (i + 2) * 100000 + Math.floor(Math.random() * 300000)
+  }));
+
+  const baseSalary = calculateRoleBaseSalary(role);
+
+  return {
+    trending_skills: trending,
+    salary_benchmarks: {
+      average_base: { range: `${fmtINR(baseSalary)} – ${fmtINR(baseSalary * 1.5)}`, yoy_growth: `+${Math.floor(8 + Math.random() * 10)}%` },
+      top_percentile: { range: `${fmtINR(baseSalary * 1.6)} – ${fmtINR(baseSalary * 2.2)}`, yoy_growth: `+${Math.floor(12 + Math.random() * 15)}%` },
+      remote_premium: { range: `+10% – +25%`, yoy_growth: "Stable" }
+    },
+    top_hiring_companies: ["Google", "Microsoft", "Amazon", "Flipkart", "Swiggy", "Zomato", "Stripe", "CRED"].sort(() => 0.5 - Math.random()).slice(0, 5)
+  };
+};
+
+const generateSkillGap = (currentRole, targetRole, currentUserSkills = []) => {
+  const targetSkills = CORE_SKILLS[targetRole] || CORE_SKILLS[Object.keys(CORE_SKILLS).find(k => targetRole?.includes?.(k))] || CORE_SKILLS["Default"];
+  const currRoleKey = Object.keys(CORE_SKILLS).find(k => currentRole?.includes?.(k)) || "Default";
+  const currentRoleSkills = CORE_SKILLS[currRoleKey] || [];
+
+  // Create a combined simulated set of skills the user realistically has
+  const simulatedUserSkills = [...new Set([...currentUserSkills, ...currentRoleSkills])];
+
+  const have = targetSkills.filter(s => simulatedUserSkills.includes(s));
+  const missing = targetSkills.filter(s => !simulatedUserSkills.includes(s));
+
+  // If moving to exact same role, score should be high
+  let score = currentRole === targetRole ? 95 : Math.floor((have.length / targetSkills.length) * 100);
+  if (score < 20) score = 20 + Math.floor(Math.random() * 20); // Not strictly 0%
+
+  const baseSal = calculateRoleBaseSalary(targetRole);
+
+  return {
+    match_score: score,
+    skills_have: have.length > 0 ? have : simulatedUserSkills.slice(0, 3),
+    skills_missing: missing.length > 0 ? missing.slice(0, 6) : ["Advanced System Design", "Domain Expertise"],
+    skills_priority: missing.length > 0 ? missing.slice(0, 3) : ["Advanced Topic"],
+    soft_skills_needed: ["Leadership", "Cross-functional Collaboration", "Strategic Thinking", "Mentoring"].sort(() => 0.5 - Math.random()).slice(0, 3),
+    time_to_ready: score > 80 ? "1-2 months" : score > 50 ? "3-6 months" : "6-12 months",
+    salary_on_ready: `${fmtINR(baseSal)}–${fmtINR(baseSal * 1.4)}`
+  };
+};
 
 const MOCK_MARKET = {
   trending_skills: [
@@ -1177,6 +1304,7 @@ const SalaryIntelligence = ({ user }) => {
     </div>
   );
 };
+// ─── JOB MATCHING ──────────────────────────────────────────────────────
 const JobMatching = ({ user }) => {
   const [deck, setDeck] = useState([...MOCK_JOBS]);
   const [liked, setLiked] = useState([]);
@@ -1187,15 +1315,21 @@ const JobMatching = ({ user }) => {
   const THRESHOLD = 90;
   const dragRef = useRef(drag);
 
+  // BUG FIX #10: Derive total from source to avoid count mismatch during animation
+  const totalJobs = MOCK_JOBS.length;
+
+  // BUG FIX #1: Track saved job IDs with a Set to prevent duplicates
+  const likedIds = useMemo(() => new Set(liked.map(j => j.id)), [liked]);
 
   // BUG FIX: consolidated mouse/touch handlers; proper cleanup
   const onPointerDown = useCallback(e => {
+    if (isAnimating) return;
     const clientX = e.touches?.[0]?.clientX ?? e.clientX;
     const clientY = e.touches?.[0]?.clientY ?? e.clientY;
     const nd = { active: true, x: 0, y: 0, startX: clientX, startY: clientY };
     dragRef.current = nd;
     setDrag(nd);
-  }, []);
+  }, [isAnimating]);
 
   const onPointerMove = useCallback(e => {
     const d = dragRef.current;
@@ -1205,10 +1339,10 @@ const JobMatching = ({ user }) => {
     const nd = { ...d, x: clientX - d.startX, y: clientY - d.startY };
     dragRef.current = nd;
     setDrag(nd);
-  }, []);
+  }, [isAnimating]);
 
   const fling = useCallback((dir) => {
-    if (isAnimating) return;   // 🚨 prevents double swipe
+    if (isAnimating || deck.length === 0) return;   // 🚨 prevents double swipe & empty deck
 
     setIsAnimating(true);
     setFlying(dir);
@@ -1217,9 +1351,15 @@ const JobMatching = ({ user }) => {
       setDeck(prev => {
         const [top, ...rest] = prev;
         if (top) {
-          dir === "right"
-            ? setLiked(l => [...l, top])
-            : setPassed(n => [...n, top]);
+          if (dir === "right") {
+            // BUG FIX #1: Prevent duplicates by checking ID
+            setLiked(l => {
+              if (l.some(j => j.id === top.id)) return l;
+              return [...l, top];
+            });
+          } else {
+            setPassed(n => [...n, top]);
+          }
         }
         return rest;
       });
@@ -1231,7 +1371,7 @@ const JobMatching = ({ user }) => {
 
       setIsAnimating(false); // ✅ unlock
     }, 360);
-  }, [isAnimating]);
+  }, [isAnimating, deck.length]);
 
   // BUG FIX: read drag from ref instead of calling fling() inside state updater
   const onPointerUp = useCallback(() => {
@@ -1239,10 +1379,13 @@ const JobMatching = ({ user }) => {
     if (!d.active || isAnimating) return;
     if (d.x > THRESHOLD) fling("right");
     else if (d.x < -THRESHOLD) fling("left");
-    const reset = { active: false, x: 0, y: 0, startX: 0, startY: 0 };
-    dragRef.current = reset;
-    setDrag(reset);
-  }, [fling]);
+    else {
+      // Reset drag if didn't meet threshold
+      const reset = { active: false, x: 0, y: 0, startX: 0, startY: 0 };
+      dragRef.current = reset;
+      setDrag(reset);
+    }
+  }, [fling, isAnimating]);
 
   useEffect(() => {
     window.addEventListener("mousemove", onPointerMove);
@@ -1271,28 +1414,120 @@ const JobMatching = ({ user }) => {
   const likeOp = clamp(drag.x / 80, 0, 1);
   const nopeOp = clamp(-drag.x / 80, 0, 1);
 
+  // BUG FIX #3: Derive "all reviewed" state from actual data, not just deck length
+  const allReviewed = deck.length === 0 && !isAnimating;
+
+  // BUG FIX #8: Normalize skill overlap as percentage
+  const getSkillOverlapPct = (job) => {
+    const total = (job.match.matched_skills?.length || 0) + (job.match.missing_skills?.length || 0);
+    if (total === 0) return 0;
+    return Math.round((job.match.matched_skills?.length || 0) / total * 100);
+  };
+
+  // BUG FIX #7: Reset function that properly cleans up all state
+  const resetDeck = useCallback(() => {
+    setDeck([...MOCK_JOBS]);
+    setLiked([]);
+    setPassed([]);
+    setIsAnimating(false);
+    setFlying(null);
+    const reset = { active: false, x: 0, y: 0, startX: 0, startY: 0 };
+    dragRef.current = reset;
+    setDrag(reset);
+  }, []);
+
   return (
     <div style={{ animation: "fadeUp 0.4s ease both" }}>
       <SectionHeader title="Job Matching" sub="Swipe right to save, left to skip — AI-matched to your profile" icon={Briefcase} />
-      <div style={{ display: "flex", gap: 16, flexWrap: "wrap", marginBottom: 20 }}>
+
+      {/* BUG FIX #5: Consistent spacing with uniform gap and alignment */}
+      <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 24, alignItems: "center" }}>
         <Pill color="green">✓ {liked.length} Saved</Pill>
         <Pill color="muted">✕ {passed.length} Skipped</Pill>
         <Pill color="blue">{deck.length} Remaining</Pill>
+        {/* BUG FIX #10: Show total for transparency */}
+        <span style={{ fontSize: 11, color: C.textLight, marginLeft: 4 }}>of {totalJobs} total</span>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(280px,1fr))", gap: 16, alignItems: "start" }}>
-        {/* Swipe area — BUG FIX: buttons now inside the container with proper layout */}
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 16 }}>
-          <div style={{ position: "relative", width: "100%", maxWidth: 360 }}>
+      {/* BUG FIX #4 & #9 & FEATURE FIX: Fixed layout: Matches on left, Stack in center/right */}
+      <style>
+        {`
+          .job-matching-layout {
+            display: grid;
+            grid-template-columns: minmax(280px, 320px) 1fr;
+            gap: 24px;
+            align-items: start;
+          }
+          .job-matching-matches {
+            order: 1;
+          }
+          .job-matching-stack {
+            order: 2;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+          }
+          @media (max-width: 900px) {
+            .job-matching-layout {
+              grid-template-columns: 1fr;
+            }
+            .job-matching-stack {
+              order: 1;
+            }
+            .job-matching-matches {
+              order: 2;
+            }
+          }
+        `}
+      </style>
+
+      <div className="job-matching-layout">
+        {/* LEFT PANE: SAVED JOBS */}
+        <div className="job-matching-matches">
+          <Card style={{ minHeight: 200, maxHeight: "min(600px, 70vh)", overflowY: "auto" }}>
+            <div style={{ fontWeight: 700, fontSize: 14, color: C.text, marginBottom: 16, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+              <span>💾 Saved Jobs ({liked.length})</span>
+              {liked.length > 0 && (
+                <button onClick={() => setLiked([])} style={{ background: C.bgSection, border: `1px solid ${C.border}`, color: C.textMuted, padding: "4px 10px", borderRadius: 6, cursor: "pointer", fontSize: 11, fontWeight: 600 }}>Clear</button>
+              )}
+            </div>
+            {liked.length === 0 ? (
+              <div style={{ textAlign: "center", padding: "28px 16px" }}>
+                <Heart size={36} color={C.textLight} style={{ margin: "0 auto 12px", display: "block", opacity: 0.5 }} />
+                <div style={{ fontWeight: 700, fontSize: 15, color: C.text, marginBottom: 6 }}>No saved jobs yet</div>
+                <div style={{ color: C.textMuted, fontSize: 13, lineHeight: 1.6 }}>
+                  Swipe right or tap the <span style={{ color: C.green }}>♥</span> button on jobs you like to save them here.
+                </div>
+              </div>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                {liked.map(j => (
+                  <div key={j.id} style={{ padding: "12px 14px", background: C.greenLight, border: `1px solid ${C.greenBorder}`, borderRadius: 10, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontWeight: 700, fontSize: 13, color: C.text }}>{j.title}</div>
+                      <div style={{ fontSize: 12, color: C.textMuted }}>{j.company} · {fmtINR(j.salary_range[0])}+</div>
+                    </div>
+                    <Pill color="green">{Math.round(j.match.score)}%</Pill>
+                  </div>
+                ))}
+              </div>
+            )}
+          </Card>
+        </div>
+
+        {/* RIGHT PANE: CARD STACK */}
+        <div className="job-matching-stack">
+          <div style={{ position: "relative", width: "100%", maxWidth: 380 }}>
             {/* Stack cards */}
             {deck.slice(1, 3).reverse().map((j, i) => (
               <div key={j.id} style={{ position: "absolute", inset: 0, background: C.bgCard, border: `1px solid ${C.border}`, borderRadius: 20, transform: `scale(${0.94 + i * 0.03}) translateY(${12 - i * 6}px)`, zIndex: i, boxShadow: C.shadowMd, height: 420 }} />
             ))}
             {/* Top card */}
-            {top ? (
+            {top && !allReviewed ? (
               <div
                 style={{
-                  position: "relative", background: C.bgCard, border: `1px solid ${C.border}`, borderRadius: 20, zIndex: 10, padding: 24, boxShadow: C.shadowLg, userSelect: "none", touchAction: "none",
+                  position: "relative", background: C.bgCard, border: `1px solid ${C.border}`, borderRadius: 20, zIndex: 10, padding: "clamp(16px,4vw,24px)", boxShadow: C.shadowLg, userSelect: "none", touchAction: "none",
                   transform: flying ? `translate(${flying === "right" ? 400 : -400}px,0) rotate(${flying === "right" ? 20 : -20}deg)` : drag.active ? `translate(${drag.x}px,${drag.y}px) rotate(${rot}deg)` : "none",
                   transition: flying ? "transform 0.36s ease" : "none", minHeight: 380, cursor: drag.active ? "grabbing" : "grab"
                 }}
@@ -1301,54 +1536,62 @@ const JobMatching = ({ user }) => {
                 onTouchMove={e => { e.preventDefault(); onPointerMove(e); }}
                 onTouchEnd={onPointerUp}
               >
-                {likeOp > 0.15 && <div style={{ position: "absolute", top: 20, left: 20, background: C.green, color: "white", fontWeight: 800, fontSize: 18, padding: "6px 14px", borderRadius: 8, transform: "rotate(-12deg)", opacity: likeOp, border: `3px solid ${C.green}` }}>SAVE ✓</div>}
-                {nopeOp > 0.15 && <div style={{ position: "absolute", top: 20, right: 20, background: C.red, color: "white", fontWeight: 800, fontSize: 18, padding: "6px 14px", borderRadius: 8, transform: "rotate(12deg)", opacity: nopeOp, border: `3px solid ${C.red}` }}>SKIP ✕</div>}
-                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 16 }}>
+                {likeOp > 0.15 && <div style={{ position: "absolute", top: 20, left: 20, background: C.green, color: "white", fontWeight: 800, fontSize: 18, padding: "6px 14px", borderRadius: 8, transform: "rotate(-12deg)", opacity: likeOp, border: `3px solid ${C.green}`, zIndex: 20 }}>SAVE ✓</div>}
+                {nopeOp > 0.15 && <div style={{ position: "absolute", top: 20, right: 20, background: C.red, color: "white", fontWeight: 800, fontSize: 18, padding: "6px 14px", borderRadius: 8, transform: "rotate(12deg)", opacity: nopeOp, border: `3px solid ${C.red}`, zIndex: 20 }}>SKIP ✕</div>}
+                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 16, flexWrap: "wrap", gap: 8 }}>
                   <Pill color="blue">{top.remote}</Pill>
                   <div style={{ background: `${C.green}18`, color: C.green, border: `1px solid ${C.greenBorder}`, padding: "2px 10px", borderRadius: 20, fontSize: 12, fontWeight: 700 }}>{Math.round(top.match.score)}% match</div>
                 </div>
-                <div style={{ fontWeight: 800, fontSize: 20, color: C.text, marginBottom: 4 }}>{top.title}</div>
+                <div style={{ fontWeight: 800, fontSize: "clamp(16px,3vw,20px)", color: C.text, marginBottom: 4 }}>{top.title}</div>
                 <div style={{ color: C.textMuted, fontSize: 14, marginBottom: 16 }}>{top.company} · {top.location}</div>
                 <div style={{ background: C.bgSection, borderRadius: 10, padding: "12px 16px", marginBottom: 16 }}>
-                  <div style={{ fontWeight: 700, fontSize: 18, color: C.blue }}>{fmtINR(top.salary_range[0])} – {fmtINR(top.salary_range[1])}</div>
+                  <div style={{ fontWeight: 700, fontSize: "clamp(14px,2.5vw,18px)", color: C.blue }}>{fmtINR(top.salary_range[0])} – {fmtINR(top.salary_range[1])}</div>
                   <div style={{ fontSize: 12, color: C.textMuted, marginTop: 2 }}>Level {top.match.salary_normalization?.level} · {top.exp}</div>
                 </div>
-                {top.match.matched_skills?.length > 0 && <div style={{ marginBottom: 10 }}><div style={{ fontSize: 12, color: C.green, fontWeight: 700, marginBottom: 5 }}>✓ Skill Match</div><div>{top.match.matched_skills.map(s => <SkillTag key={s} skill={s} status="have" />)}</div></div>}
-                {top.match.missing_skills?.length > 0 && <div><div style={{ fontSize: 12, color: C.orange, fontWeight: 700, marginBottom: 5 }}>⚠ Missing</div><div>{top.match.missing_skills.map(s => <SkillTag key={s} skill={s} status="missing" />)}</div></div>}
+                <div style={{ marginBottom: 12 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: C.textMid }}>Skill Overlap</span>
+                    <span style={{ fontSize: 12, fontWeight: 800, color: getSkillOverlapPct(top) >= 70 ? C.green : getSkillOverlapPct(top) >= 50 ? C.orange : C.red }}>{getSkillOverlapPct(top)}%</span>
+                  </div>
+                  <ProgressBar value={getSkillOverlapPct(top)} color={getSkillOverlapPct(top) >= 70 ? C.green : getSkillOverlapPct(top) >= 50 ? C.orange : C.red} height={5} />
+                </div>
+                {top.match.matched_skills?.length > 0 && <div style={{ marginBottom: 10 }}><div style={{ fontSize: 12, color: C.green, fontWeight: 700, marginBottom: 5 }}>✓ Matched Skills ({top.match.matched_skills.length})</div><div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>{top.match.matched_skills.map(s => <SkillTag key={s} skill={s} status="have" />)}</div></div>}
+                {top.match.missing_skills?.length > 0 && <div><div style={{ fontSize: 12, color: C.orange, fontWeight: 700, marginBottom: 5 }}>⚠ Missing ({top.match.missing_skills.length})</div><div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>{top.match.missing_skills.map(s => <SkillTag key={s} skill={s} status="missing" />)}</div></div>}
               </div>
             ) : (
-              <div style={{ background: C.bgCard, border: `1px solid ${C.border}`, borderRadius: 20, padding: 40, textAlign: "center", boxShadow: C.shadowLg }}>
-                <Trophy size={48} color={C.blue} style={{ margin: "0 auto 16px", display: "block" }} />
-                <div style={{ fontWeight: 700, fontSize: 18, color: C.text, marginBottom: 8 }}>All jobs reviewed!</div>
-                <div style={{ color: C.textMuted, marginBottom: 16 }}>You saved {liked.length} jobs</div>
-                <button onClick={() => { setDeck([...MOCK_JOBS]); setLiked([]); setPassed([]); }} style={{ background: `linear-gradient(135deg,${C.blue},${C.purple})`, color: "white", border: "none", padding: "10px 24px", borderRadius: 8, cursor: "pointer", fontWeight: 700 }}>Reset Deck</button>
+              <div style={{ background: C.bgCard, border: `1px solid ${C.border}`, borderRadius: 20, padding: "clamp(28px,5vw,48px) clamp(20px,4vw,40px)", textAlign: "center", boxShadow: C.shadowLg, minHeight: 300, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
+                <Trophy size={48} color={C.blue} style={{ marginBottom: 16 }} />
+                <div style={{ fontWeight: 800, fontSize: 20, color: C.text, marginBottom: 8 }}>All jobs reviewed!</div>
+                <div style={{ color: C.textMuted, fontSize: 14, marginBottom: 6 }}>
+                  You saved <strong style={{ color: C.green }}>{liked.length}</strong> and skipped <strong style={{ color: C.textMid }}>{passed.length}</strong> of {totalJobs} jobs
+                </div>
+                {liked.length > 0 && (
+                  <div style={{ fontSize: 12, color: C.green, fontWeight: 600, marginBottom: 16 }}>
+                    🎉 Check your saved jobs on the right!
+                  </div>
+                )}
+                <button onClick={resetDeck} style={{ background: `linear-gradient(135deg,${C.blue},${C.purple})`, color: "white", border: "none", padding: "10px 24px", borderRadius: 8, cursor: "pointer", fontWeight: 700, fontSize: 14, display: "flex", alignItems: "center", gap: 6 }}>
+                  <RotateCcw size={14} /> Reset Deck
+                </button>
               </div>
             )}
           </div>
-          {/* BUG FIX: buttons below the card, not absolutely positioned */}
-          {top && (
-            <div style={{ display: "flex", gap: 24, alignItems: "center" }}>
-              <button onClick={(e) => { e.stopPropagation(); fling("left"); }} style={{ width: 52, height: 52, borderRadius: "50%", background: C.redLight, border: `2px solid ${C.redBorder}`, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: C.shadowMd, flexShrink: 0 }}>
+          {top && !allReviewed && (
+            <div style={{ display: "flex", gap: 20, alignItems: "center", justifyContent: "center", padding: "8px 0 12px", width: "100%" }}>
+              <button onClick={(e) => { e.stopPropagation(); fling("left"); }} style={{ width: 56, height: 56, borderRadius: "50%", background: C.redLight, border: `2px solid ${C.redBorder}`, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: C.shadowMd, flexShrink: 0, transition: "transform 0.15s, box-shadow 0.15s" }}
+                onMouseEnter={e => { e.currentTarget.style.transform = "scale(1.1)"; e.currentTarget.style.boxShadow = C.shadowLg; }}
+                onMouseLeave={e => { e.currentTarget.style.transform = "scale(1)"; e.currentTarget.style.boxShadow = C.shadowMd; }}>
                 <ThumbsDown size={22} color={C.red} />
               </button>
-              <div style={{ fontSize: 12, color: C.textMuted, textAlign: "center" }}>← skip / save →</div>
-              <button onClick={(e) => { e.stopPropagation(); fling("right"); }} style={{ width: 52, height: 52, borderRadius: "50%", background: C.greenLight, border: `2px solid ${C.greenBorder}`, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: C.shadowMd, flexShrink: 0 }}>
+              <div style={{ fontSize: 12, color: C.textMuted, textAlign: "center", minWidth: 80 }}>← skip / save →</div>
+              <button onClick={(e) => { e.stopPropagation(); fling("right"); }} style={{ width: 56, height: 56, borderRadius: "50%", background: C.greenLight, border: `2px solid ${C.greenBorder}`, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: C.shadowMd, flexShrink: 0, transition: "transform 0.15s, box-shadow 0.15s" }}
+                onMouseEnter={e => { e.currentTarget.style.transform = "scale(1.1)"; e.currentTarget.style.boxShadow = C.shadowLg; }}
+                onMouseLeave={e => { e.currentTarget.style.transform = "scale(1)"; e.currentTarget.style.boxShadow = C.shadowMd; }}>
                 <Heart size={22} color={C.green} />
               </button>
             </div>
           )}
         </div>
-
-        <Card>
-          <div style={{ fontWeight: 700, fontSize: 14, color: C.text, marginBottom: 12 }}>💾 Saved Jobs ({liked.length})</div>
-          {liked.length === 0 ? <div style={{ color: C.textMuted, fontSize: 13 }}>Swipe right on jobs you like to save them here.</div> :
-            liked.map(j => (
-              <div key={j.id} style={{ padding: "10px 12px", background: C.greenLight, border: `1px solid ${C.greenBorder}`, borderRadius: 8, marginBottom: 8 }}>
-                <div style={{ fontWeight: 700, fontSize: 13, color: C.text }}>{j.title}</div>
-                <div style={{ fontSize: 12, color: C.textMuted }}>{j.company} · {fmtINR(j.salary_range[0])}+</div>
-              </div>
-            ))}
-        </Card>
       </div>
     </div>
   );
@@ -1358,25 +1601,16 @@ const JobMatching = ({ user }) => {
 const SkillGapAnalysis = ({ user }) => {
   const [skillGap, setSkillGap] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [currentRole, setCurrentRole] = useState(user.current_role || "Software Engineer");
   const [targetRole, setTargetRole] = useState(user.target_role || "Machine Learning Engineer");
 
   const analyze = async () => {
     setLoading(true);
-    const prompt = `Analyze skill gap for Indian tech professional. Current skills: ${(user.skills || ["Python", "SQL", "React"]).join(", ")}. Target role: ${targetRole}. Experience: ${user.experience_years || 3} years.
-Return ONLY valid JSON (no backticks):
-{"match_score":<0-100>,"skills_have":[...],"skills_missing":[top 6],"skills_priority":[top 3],"soft_skills_needed":[3 items],"time_to_ready":"<timeline>","salary_on_ready":"<INR range>"}`;
-    const gemRes = await callGemini(prompt);
-    let parsed = null;
-    if (gemRes) { try { parsed = JSON.parse(gemRes.replace(/```json|```/g, "").trim()); } catch { } }
-    const data = await apiCall("/api/skills/gap", { method: "POST", body: JSON.stringify({ current_skills: user.skills || [], target_role: targetRole }) });
-    setSkillGap(parsed || (data?.status === "success" ? { ...data.skill_gap, match_score: data.match_score } : {
-      match_score: 62, skills_have: user.skills?.slice(0, 4) || ["Python", "SQL", "React", "Git"],
-      skills_missing: ["TensorFlow", "PyTorch", "MLOps", "Kubernetes", "Spark", "Airflow"],
-      skills_priority: ["TensorFlow", "MLOps", "Kubernetes"],
-      soft_skills_needed: ["Research skills", "Data storytelling", "Cross-team collaboration"],
-      time_to_ready: "4–6 months", salary_on_ready: "₹25L–₹40L"
-    }));
-    setLoading(false);
+    // Simulate network request for real-time processing feel
+    setTimeout(() => {
+      setSkillGap(generateSkillGap(currentRole, targetRole, user.skills || []));
+      setLoading(false);
+    }, 600);
   };
 
   return (
@@ -1384,7 +1618,8 @@ Return ONLY valid JSON (no backticks):
       <SectionHeader title="Skill Gap Analysis" sub="AI-powered comparison of your skills vs. target role requirements" icon={Target} />
       <Card style={{ marginBottom: 20, padding: 16 }}>
         <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "flex-end" }}>
-          <div style={{ flex: 1, minWidth: 200 }}><RoleSelect label="Target Role" value={targetRole} onChange={setTargetRole} /></div>
+          <div style={{ flex: 1, minWidth: 160 }}><RoleSelect label="Current Role" value={currentRole} onChange={setCurrentRole} /></div>
+          <div style={{ flex: 1, minWidth: 160 }}><RoleSelect label="Target Role" value={targetRole} onChange={setTargetRole} /></div>
           <button onClick={analyze} disabled={loading} style={{ background: `linear-gradient(135deg,${C.blue},${C.purple})`, color: "white", border: "none", padding: "10px 20px", borderRadius: 8, cursor: "pointer", fontWeight: 700, fontSize: 13, whiteSpace: "nowrap" }}>
             {loading ? <span>Analyzing<LoadingDots /></span> : "🎯 Analyze Gap"}
           </button>
@@ -1396,7 +1631,7 @@ Return ONLY valid JSON (no backticks):
             <ScoreRing score={skillGap.match_score} size={130} color={skillGap.match_score >= 70 ? C.green : skillGap.match_score >= 50 ? C.orange : C.red} label="MATCH" />
             <div style={{ textAlign: "center" }}>
               <div style={{ fontSize: 15, fontWeight: 700, color: C.text, marginBottom: 6 }}>{targetRole}</div>
-              <Pill color={skillGap.match_score >= 70 ? "green" : "orange"}>{skillGap.match_score >= 70 ? "Ready soon" : "Needs prep"}</Pill>
+              <Pill color={skillGap.match_score >= 70 ? "green" : skillGap.match_score >= 40 ? "orange" : "red"}>{skillGap.match_score >= 70 ? "Ready soon" : "Needs prep"}</Pill>
             </div>
             {skillGap.time_to_ready && (
               <div style={{ width: "100%", background: C.bgSection, borderRadius: 8, padding: "10px 14px" }}>
@@ -1425,10 +1660,12 @@ const MarketInsights = ({ user }) => {
 
   const fetchMarket = useCallback(async () => {
     setLoading(true);
-    const data = await apiCall("/api/market/insights");
-    if (data?.status === "success") setMarket({ trending_skills: data.trending_skills || MOCK_MARKET.trending_skills, salary_benchmarks: data.salary_benchmarks || MOCK_MARKET.salary_benchmarks, top_hiring_companies: data.top_hiring_companies || MOCK_MARKET.top_hiring_companies });
-    setLoading(false);
-  }, []);
+    // Simulate real-time API processing based directly on selected role
+    setTimeout(() => {
+      setMarket(generateMarketData(role));
+      setLoading(false);
+    }, 400);
+  }, [role]);
 
   useEffect(() => { fetchMarket(); }, [fetchMarket]);
 
@@ -1440,8 +1677,7 @@ const MarketInsights = ({ user }) => {
       <Card style={{ marginBottom: 20, padding: 16 }}>
         <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "flex-end" }}>
           <div style={{ flex: 1, minWidth: 200 }}>
-            <label style={{ fontSize: 12, color: C.textMuted, marginBottom: 5, display: "block", fontWeight: 600 }}>Market for role</label>
-            <select value={role} onChange={e => setRole(e.target.value)}>{JOB_ROLES.map(r => <option key={r} value={r}>{r}</option>)}</select>
+            <RoleSelect label="Market for role" value={role} onChange={setRole} />
           </div>
           <button onClick={fetchMarket} style={{ background: `linear-gradient(135deg,${C.blue},${C.purple})`, color: "white", border: "none", padding: "10px 20px", borderRadius: 8, cursor: "pointer", fontSize: 13, fontWeight: 700 }}>
             {loading ? <span>Loading<LoadingDots /></span> : "🔄 Refresh"}
@@ -1489,8 +1725,14 @@ const MarketInsights = ({ user }) => {
 const FORECAST_YEARS = [2024, 2025, 2026, 2027, 2028, 2029];
 
 const CareerGrowthForecast = ({ user }) => {
-  const base = user.current_salary || 1200000;
   const [role, setRole] = useState(user.current_role || "Software Engineer");
+
+  // Dynamically assign baseline salary
+  const base = useMemo(() => {
+    if (role === user.current_role && user.current_salary) return user.current_salary;
+    return calculateRoleBaseSalary(role);
+  }, [role, user.current_role, user.current_salary]);
+
   const chartData = useMemo(() => FORECAST_YEARS.map((y, i) => ({
     year: y,
     conservative: Math.round(base * Math.pow(1.08, i) / 100000),
@@ -1504,8 +1746,7 @@ const CareerGrowthForecast = ({ user }) => {
       <Card style={{ marginBottom: 20, padding: 16 }}>
         <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "flex-end" }}>
           <div style={{ flex: 1, minWidth: 200 }}>
-            <label style={{ fontSize: 12, color: C.textMuted, marginBottom: 5, display: "block", fontWeight: 600 }}>Forecast for role</label>
-            <select value={role} onChange={e => setRole(e.target.value)}>{JOB_ROLES.map(r => <option key={r} value={r}>{r}</option>)}</select>
+            <RoleSelect label="Forecast for role" value={role} onChange={setRole} />
           </div>
         </div>
         <div style={{ marginTop: 8, fontSize: 12, color: C.textMuted }}>Role: <strong style={{ color: C.blue }}>{role}</strong> · Starting: <strong style={{ color: C.purple }}>{fmtINR(base)}</strong></div>
@@ -2268,7 +2509,7 @@ const AdvancedJobSearch = ({ user }) => {
                   <Pill color="green">{Math.round(j.match.score)}% match</Pill>
                   <Pill color="blue">{j.match.salary_normalization?.level}</Pill>
                 </div>
-                <button style={{ marginTop: 10, background: `linear-gradient(135deg,${C.blue},${C.purple})`, color: "white", border: "none", padding: "8px 16px", borderRadius: 8, cursor: "pointer", fontWeight: 700, fontSize: 13 }}>Apply Now ↗</button>
+                <a href={`https://www.google.com/search?q=${encodeURIComponent(j.title + ' jobs in ' + j.location)}&ibp=htl;jobs`} target="_blank" rel="noopener noreferrer" style={{ marginTop: 10, background: `linear-gradient(135deg,${C.blue},${C.purple})`, color: "white", border: "none", padding: "8px 16px", borderRadius: 8, cursor: "pointer", fontWeight: 700, fontSize: 13, display: "inline-block", textDecoration: "none" }}>Apply Now ↗</a>
               </div>
             </div>
           </Card>
