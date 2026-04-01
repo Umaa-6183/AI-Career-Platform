@@ -881,25 +881,43 @@ async def call_gemini(prompt: str, system: str = "") -> str:
     if not GEMINI_API_KEY:
         return "AI features require GEMINI_API_KEY. Please configure it."
 
+    models_to_try = ["gemini-2.0-flash",
+                     "gemini-flash-latest", "gemini-pro-latest"]
+    last_error = ""
+
     try:
         client = genai.Client(api_key=GEMINI_API_KEY)
-
-        full_prompt = f"""
-        {system or "You are CareerIQ Pro AI — a career coach specialising in Indian tech job market. Give actionable, concise advice. All salaries in INR."}
-
-        User Query:
-        {prompt}
-        """
-
-        response = client.models.generate_content(
-            model="gemini-2.0-flash",
-            contents=full_prompt
+        full_system = system or (
+            "You are CareerIQ Pro AI — a world-class professional career coach and expert technical interviewer. "
+            "STRICT RULES: "
+            "1. NEVER use bold markdown (no ** symbols). Use plain text or bullet points (-) for emphasis. "
+            "2. NEVER mention 'Gemini', 'Google', or any specific AI model. You are 'CareerIQ Pro AI'. "
+            "3. If a candidate says 'I don't know' or is unsure, briefly and professionally explain the core concept "
+            "in 1-2 sentences to help them learn, then proceed to the next question or topic. "
+            "4. All salaries must be in INR. Be concise, actionable, and focus on the Indian tech job market."
         )
 
-        return response.text
+        for model_name in models_to_try:
+            try:
+                response = client.models.generate_content(
+                    model=model_name,
+                    contents=full_system + "\n\nUser Query:\n" + prompt
+                )
+                return response.text
+            except Exception as e:
+                last_error = str(e)
+                # If it's a quota error, we continue to the next model
+                if "429" in last_error or "RESOURCE_EXHAUSTED" in last_error:
+                    continue
+                # For other errors (like invalid prompt), we stop
+                break
+
+        if "429" in last_error or "RESOURCE_EXHAUSTED" in last_error:
+            return "[QUOTA_EXHAUSTED]"
+        return f"AI response unavailable: {last_error}"
 
     except Exception as e:
-        return f"AI response unavailable: {str(e)}"
+        return f"AI Client Error: {str(e)}"
 # ─────────────────────────────────────────────────────────────────────────────
 # INTERVIEW SCORER
 # ─────────────────────────────────────────────────────────────────────────────
@@ -933,41 +951,75 @@ def score_answer(question: str, answer: str) -> dict:
 
 
 IQ = {
-    "technical": [
-        {"q": "Explain L1 vs L2 regularization. When would you use each?",
-            "framework": "Define → Difference → Use case → Trade-off"},
-        {"q": "How does the transformer attention mechanism work?",
-            "framework": "Problem → Self-attention → Multi-head → Complexity"},
-        {"q": "Design a URL shortener handling 100M requests/day.",
-            "framework": "Requirements → Scale → Design → Deep dive → Trade-offs"},
-        {"q": "What is the CAP theorem? Give a real example.",
-            "framework": "Define C,A,P → Why not all 3 → Real system examples"},
-        {"q": "Debug a model: 99% train accuracy, 60% test accuracy.",
-            "framework": "Diagnose overfit → Data leakage → Regularization → More data"},
+    "software_engineer": [
+        {"q": "Tell me about your background and what draws you to this role. What key experiences make you a strong candidate?"},
+        {"q": "Explain a complex technical challenge you faced. How did you solve it and what was the outcome?"},
+        {"q": "How do you handle conflict in a team or a disagreement over a technical decision?"},
+        {"q": "Describe your experience with large-scale data processing or system architecture. What tools do you prefer?"},
+        {"q": "What is your approach to learning a new technology quickly? Can you give an example from your current role?"},
+        {"q": "How do you ensure your code is maintainable and scalable? Mention specific practices like testing or CI/CD."},
+        {"q": "Tell me about a time you failed or missed a deadline. How did you manage the situation and what did you learn?"},
+        {"q": "Where do you see yourself in 3 years? How does this role align with your long-term career goals?"},
+        {"q": "Do you have any questions for me about the company or the team culture?"},
+        {"q": "How do you stay updated with the latest industry trends and technologies?"},
+        {"q": "What is your process for debugging a production issue? Describe the tools and techniques you use."},
+        {"q": "How do you prioritize tasks when you have multiple projects with competing deadlines?"},
     ],
-    "behavioral": [
-        {"q": "Tell me about a time you disagreed with a technical decision.",
-            "framework": "STAR: Situation → Task → Action → Result"},
-        {"q": "Describe a project where you learned a new technology quickly.",
-            "framework": "Context → Learning → Challenges → Outcome → Lessons"},
-        {"q": "How do you handle tight deadlines with competing priorities?",
-            "framework": "Prioritization → Communication → Example → Result"},
+    "ai_engineer": [
+        {"q": "Explain L1 vs L2 regularization. When would you use each?"},
+        {"q": "How does the transformer attention mechanism work? Describe self-attention, multi-head, and complexity."},
+        {"q": "Handle class imbalance in a fraud detection model. Discuss imbalance, SMOTE, PR-AUC, and threshold tuning."},
+        {"q": "Explain the bias-variance tradeoff with a real-world example and how to fix strategies for each case."},
+        {"q": "Deploy an ML model for 1 million predictions per day. Discuss format, API, batching, and monitoring."},
+        {"q": "How do you debug an ML model with 99% train accuracy but only 60% test accuracy?"},
+        {"q": "What is your experience with fine-tuning Large Language Models (LLMs)? Detail any techniques like LoRA or PEFT."},
+        {"q": "Design a recommendation system for an e-commerce platform with 50 million monthly active users."},
+        {"q": "How do you handle data drift in a production ML pipeline? Describe your monitoring and retraining strategy."},
+        {"q": "Explain the difference between supervised, unsupervised, and reinforcement learning with use cases."},
+        {"q": "Tell me about your experience with vector databases like Chroma, Pinecone, or Weaviate in RAG applications."},
+        {"q": "What are the common evaluation metrics for an LLM-based application? Discuss RAGAS, BLEU, and ROUGE."},
     ],
-    "system_design": [
-        {"q": "Design a ride-sharing system like Ola/Uber.",
-            "framework": "Functional req → Non-functional → Components → API → DB → Scale"},
-        {"q": "Design a UPI payment system.",
-            "framework": "Requirements → Transaction flow → ACID → Idempotency → Scale"},
-        {"q": "Design real-time notifications for 50M users.",
-            "framework": "Requirements → WebSocket vs SSE → Fan-out → Storage → Scale"},
+    "frontend": [
+        {"q": "What is your strategy for optimizing the performance of a React application with a large number of components?"},
+        {"q": "Explain the differences between Server-Side Rendering (SSR) and Static Site Generation (SSG) in a framework like Next.js."},
+        {"q": "How do you manage global state in a complex frontend application? Discuss Redux, Context API, and Zustand."},
+        {"q": "Describe your experience with CSS-in-JS vs Traditional CSS. What are the pros and cons of each in a large team?"},
+        {"q": "How do you ensure web accessibility (a11y) in your frontend development? What tools and practices do you follow?"},
+        {"q": "Explain the Virtual DOM and its role in React. How does it improve performance?"},
+        {"q": "What is your approach to frontend testing? Discuss unit tests, integration tests, and end-to-end testing with tools like Jest or Cypress."},
+        {"q": "How do you handle responsive design and cross-browser compatibility across different device types?"},
+        {"q": "Describe your experience with TypeScript. How has it improved your development workflow and code quality?"},
+        {"q": "How do you optimize core web vitals for a high-traffic web application?"},
+        {"q": "Explain the concept of 'Hydration' in the context of SSR and SSG."},
+        {"q": "How do you handle authentication and authorization in a Single Page Application (SPA)?"},
     ],
-    "ml_specific": [
-        {"q": "Handle class imbalance in a fraud detection model.",
-            "framework": "Understand → SMOTE → Metrics (PR-AUC) → Threshold tuning"},
-        {"q": "Explain bias-variance tradeoff with an example.",
-            "framework": "Define bias → Define variance → Curve → Fix strategies"},
-        {"q": "Deploy an ML model for 1M predictions/day.",
-            "framework": "Format → API → Batching → Monitoring → A/B testing"},
+    "backend": [
+        {"q": "Explain the differences between Monolithic and Microservices architectures. What factors influence your choice?"},
+        {"q": "How do you design a RESTful API? Discuss versioning, authentication, and error handling best practices."},
+        {"q": "Describe your experience with Relational vs NoSQL databases. When would you choose one over the other?"},
+        {"q": "How do you handle database migrations in a production environment with zero downtime?"},
+        {"q": "Explain the concept of ACID properties in the context of database transactions."},
+        {"q": "How do you optimize the performance of a slow database query? Discuss indexing, caching, and partitioning."},
+        {"q": "What is your strategy for handling high-volume concurrent requests in a backend service? Discuss message queues and load balancing."},
+        {"q": "Describe your experience with containerization technologies like Docker and orchestration with Kubernetes."},
+        {"q": "How do you ensure the security of your backend services? Discuss JWT, OAuth2, and rate limiting."},
+        {"q": "Explain the difference between horizontal and vertical scaling for backend applications."},
+        {"q": "What is your experience with event-driven architecture? Discuss tools like Kafka or RabbitMQ."},
+        {"q": "How do you implement monitoring and observability for your backend services? Discuss logging, tracing, and metrics."},
+    ],
+    "devops": [
+        {"q": "Explain the core principles of CI/CD and how you've implemented them in your previous roles."},
+        {"q": "What is Infrastructure as Code (IaC)? Describe your experience with tools like Terraform or CloudFormation."},
+        {"q": "How do you manage secret data in a cloud environment? Discuss AWS Secrets Manager, HashiCorp Vault, etc."},
+        {"q": "Explain the concept of Canary deployment and how it differs from Blue-Green deployment."},
+        {"q": "Describe your experience with monitoring tools like Prometheus, Grafana, or ELK stack."},
+        {"q": "How do you handle scaling a Kubernetes cluster based on traffic and resource utilization?"},
+        {"q": "What is your approach to disaster recovery and backup management in a cloud-native architecture?"},
+        {"q": "Explain the shared responsibility model in cloud security (AWS, GCP, or Azure)."},
+        {"q": "How do you optimize cloud costs without sacrificing performance or reliability?"},
+        {"q": "Describe your experience with serverless technologies like AWS Lambda or Google Cloud Functions."},
+        {"q": "How do you implement a Zero Trust security model in a cloud environment?"},
+        {"q": "Explain the concept of GitOps and how it improves infrastructure management."},
     ],
 }
 
@@ -1217,6 +1269,18 @@ async def ai_resume_builder(payload: dict):
         "Format as numbered list. Each bullet: action verb + metric + impact. Use INR for salary figures."
     )
     return {"status": "success", "ai_bullets": ai_bullets, "role": role}
+
+
+@app.post("/api/ai/chat")
+async def ai_chat_endpoint(payload: dict):
+    prompt = payload.get("prompt", "")
+    system = payload.get("system", "")
+    if not prompt:
+        raise HTTPException(400, "Prompt is required")
+    result = await call_gemini(prompt, system)
+    if result == "[QUOTA_EXHAUSTED]":
+        return {"status": "exhausted", "response": "AI is currently at capacity. Switching to offline mode."}
+    return {"status": "success", "response": result}
 
 # ─── Salary ───────────────────────────────────────────────────────────────────
 
@@ -1785,16 +1849,7 @@ async def interview_questions(category: str = "technical"):
 # ─── AI Chat / Explainability ─────────────────────────────────────────────────
 
 
-@app.post("/api/ai/chat")
-async def ai_chat(req: GeminiChatRequest):
-    system = (
-        "You are CareerIQ Pro AI — a career intelligence assistant specialising in "
-        "the Indian tech job market. You help users with resume, salary, skills, and career growth. "
-        "All salaries in INR. Be concise and actionable."
-    )
-    context_block = f"\nUser context: {req.context}" if req.context else ""
-    response = await call_gemini(req.prompt + context_block, system)
-    return {"status": "success", "response": response}
+# consolidated AI Chat moved up
 
 
 @app.post("/api/ai/explain")
@@ -1808,6 +1863,8 @@ async def ai_explain(payload: dict):
         f"Context: {context}\n"
         "Give 1 clear sentence explanation and 2 action items to improve it."
     )
+    if resp == "[QUOTA_EXHAUSTED]":
+        return {"status": "exhausted", "explanation": "AI quota reached. Please try again later."}
     return {"status": "success", "explanation": resp, "metric": metric, "value": value}
 
 # ─── Side Hustles ─────────────────────────────────────────────────────────────

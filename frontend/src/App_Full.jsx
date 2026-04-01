@@ -37,7 +37,8 @@ const CH = { blue: "#2563EB", orange: "#EA580C", purple: "#7C3AED", pink: "#DB27
 
 // ─── CONFIG ───────────────────────────────────────────────────────────────────
 const API_BASE = (typeof process !== "undefined" && process.env?.REACT_APP_API_URL) || "http://localhost:8000";
-const GEMINI_API_KEY = (typeof process !== "undefined" && process.env?.REACT_APP_GEMINI_API_KEY) || "";
+// GEMINI_API_KEY moved to backend for security
+
 
 // ─── SHARED PROGRESS CONTEXT ──────────────────────────────────────────────────
 const ProgressContext = createContext(null);
@@ -94,6 +95,88 @@ const JOB_ROLES = [
   "Blockchain Developer", "Game Developer", "Embedded Systems Engineer",
   "Data Analyst", "Business Analyst", "UI/UX Designer", "Technical Program Manager",
 ];
+
+const OFFLINE_QUESTIONS = {
+  software_engineer: [
+    "Tell me about your background and what draws you to this role. What key experiences make you a strong candidate?",
+    "Explain a complex technical challenge you faced. How did you solve it and what was the outcome?",
+    "How do you handle conflict in a team or a disagreement over a technical decision?",
+    "Describe your experience with large-scale data processing or system architecture. What tools do you prefer?",
+    "What is your approach to learning a new technology quickly? Can you give an example from your current role?",
+    "How do you ensure your code is maintainable and scalable? Mention specific practices like testing or CI/CD.",
+    "Tell me about a time you failed or missed a deadline. How did you manage the situation and what did you learn?",
+    "Where do you see yourself in 3 years? How does this role align with your long-term career goals?",
+    "Do you have any questions for me about the company or the team culture?",
+    "How do you stay updated with the latest industry trends and technologies?",
+    "What is your process for debugging a production issue? Describe the tools and techniques you use.",
+    "How do you prioritize tasks when you have multiple projects with competing deadlines?"
+  ],
+  ai_engineer: [
+    "Explain the difference between L1 and L2 regularization. When would you use each in a practical scenario?",
+    "How does the transformer attention mechanism work? Walk me through self-attention and multi-head attention.",
+    "How would you handle significant class imbalance in a fraud detection model? Mention specific metrics like PR-AUC.",
+    "Explain the bias-variance tradeoff with a real-world example and discuss strategies to mitigate both issues.",
+    "What is your approach to deploying an ML model that needs to handle 1 million predictions per day?",
+    "How do you diagnose and fix a model that has 99% training accuracy but only 60% test accuracy?",
+    "Describe your experience with fine-tuning Large Language Models. Have you used techniques like LoRA or PEFT?",
+    "Design a recommendation system for a large-scale e-commerce platform. What components would you include?",
+    "How do you handle data drift in a production ML pipeline? What monitoring tools do you prefer?",
+    "Explain the core differences between supervised and reinforcement learning with specific use cases for each.",
+    "What is your experience with vector databases like Chroma or Pinecone in RAG-based applications?",
+    "What metrics do you use to evaluate the quality of an LLM-generated response? Discuss RAGAS or BLEU scores."
+  ],
+  frontend: [
+    "What is your strategy for optimizing the performance of a React application with hundreds of components?",
+    "Explain the differences between Server-Side Rendering and Static Site Generation in a framework like Next.js.",
+    "How do you manage global state in a complex frontend app? Compare Redux, Context API, and modern alternatives.",
+    "Describe your experience with CSS-in-JS versus utility-first CSS like Tailwind. When would you use each?",
+    "How do you ensure web accessibility (a11y) in your development workflow? What tools do you use?",
+    "Explain the Virtual DOM and its role in React. How does it manage efficient updates to the UI?",
+    "What is your approach to frontend testing? Discuss unit, integration, and E2E testing with Jest or Cypress.",
+    "How do you handle responsive design and cross-browser compatibility issues in a modern web app?",
+    "Describe your experience with TypeScript. How has it improved your code quality and developer experience?",
+    "How do you optimize Core Web Vitals for a high-traffic web application?",
+    "What are the security implications of using third-party packages in a frontend project? How do you mitigate risks?",
+    "Explain the concept of code-splitting and lazy loading. How do they impact application performance?"
+  ],
+  backend: [
+    "Explain the core differences between Monolithic and Microservices architectures. What are the pros and cons?",
+    "How do you design a robust and versioned RESTful API? Discuss authentication and error handling.",
+    "Describe your experience with SQL vs NoSQL databases. When is one more appropriate than the other?",
+    "How do you handle complex database migrations in a production environment with zero downtime?",
+    "Explain the ACID properties of database transactions and why they are critical for financial systems.",
+    "How do you optimize a slow database query? Discuss indexing, query plans, and caching strategies.",
+    "What is your strategy for handling high-volume concurrent requests in a distributed backend system?",
+    "Describe your experience with containerization and orchestration using Docker and Kubernetes.",
+    "How do you ensure the security of your backend services? Discuss JWT, OAuth2, and secure infrastructure.",
+    "Explain the difference between horizontal and vertical scaling for a high-traffic backend application.",
+    "What is your experience with event-driven architecture using tools like Kafka or RabbitMQ?",
+    "How do you implement comprehensive monitoring and logging for a suite of backend microservices?"
+  ],
+  devops: [
+    "Explain the core principles of CI/CD and walk me through a pipeline you have built in a previous role.",
+    "What is Infrastructure as Code? Describe your experience with tools like Terraform, Ansible, or CloudFormation.",
+    "How do you manage secrets and sensitive configuration in a cloud-native environment?",
+    "Explain the concept of a Canary deployment and how it helps minimize risk during production releases.",
+    "Describe your experience with observability tools like Prometheus, Grafana, or the ELK stack.",
+    "How do you handle the scaling of a Kubernetes cluster based on real-time traffic and resource usage?",
+    "What is your approach to disaster recovery and high availability in a multi-region cloud setup?",
+    "Explain the Shared Responsibility Model in cloud security across AWS, GCP, or Azure.",
+    "How do you optimize cloud infra costs without compromising on performance or reliability?",
+    "Describe your experience with Serverless architectures. When is it better than traditional server-based infra?",
+    "How do you implement a Zero Trust security model within a corporate cloud environment?",
+    "What are the benefits of using a Service Mesh like Istio in a complex microservices architecture?"
+  ]
+};
+
+const getOfflineQuestions = (role) => {
+  const r = (role || "Software Engineer").toLowerCase();
+  if (r.includes("ai") || r.includes("machine learning") || r.includes("ml")) return OFFLINE_QUESTIONS.ai_engineer;
+  if (r.includes("frontend") || r.includes("ui") || r.includes("ux")) return OFFLINE_QUESTIONS.frontend;
+  if (r.includes("backend") || r.includes("full stack") || r.includes("system")) return OFFLINE_QUESTIONS.backend;
+  if (r.includes("devops") || r.includes("sre") || r.includes("cloud")) return OFFLINE_QUESTIONS.devops;
+  return OFFLINE_QUESTIONS.software_engineer;
+};
 
 const REAL_COURSES = [
   { id: "c1", skill: "Python", title: "Python for Everybody", platform: "Coursera / University of Michigan", type: "course", rating: 4.8, duration: "8 weeks", price: "Free Audit", salary_uplift: "+₹1.2L", url: "https://www.coursera.org/specializations/python", category: "Programming", icon: "🐍" },
@@ -329,25 +412,20 @@ async function apiCall(ep, opts = {}) {
   }
 }
 
-async function callGemini(prompt) {
-  if (!GEMINI_API_KEY) {
-    console.warn("Gemini API key missing");
-    return null;
-  }
+async function callGemini(prompt, system = "") {
   try {
-    const r = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`,
-      {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { temperature: 0.7, maxOutputTokens: 1200 } })
-      }
-    );
+    const r = await fetch(`${API_BASE}/api/ai/chat`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ prompt, system })
+    });
     const d = await r.json();
-    if (d.error) return null;
-    return d?.candidates?.[0]?.content?.parts?.[0]?.text || null;
+    if (d.status === "exhausted") return { text: "Our specialized AI is currently under high load. Switching to expert fallback mode...", status: "exhausted" };
+    if (d.status === "error" || d.detail) return { text: "AI service is temporarily unavailable. Continuing in expert fallback mode...", status: "error" };
+    return { text: d.response || null, status: "success" };
   } catch (e) {
-    console.error("API Error:", e);
-    return null;
+    console.error("AI Proxy Error:", e);
+    return { text: "Network connection is slow. Continuing in expert fallback mode...", status: "error" };
   }
 }
 
@@ -856,7 +934,8 @@ const AIExplainability = ({ user }) => {
 User profile: Role=${user.current_role}, Target=${user.target_role}, Experience=${user.experience_years}yrs, Salary=${fmtINR(user.current_salary)}, Skills=${(user.skills || []).join(", ")}.
 Question: "${q}"
 Answer clearly and specifically for this user's situation. Be helpful, concise, India-market focused. Under 200 words.`;
-    const resp = await callGemini(prompt);
+    const res = await callGemini(prompt);
+    const resp = res.text;
     const finalAnswer = resp || `Based on your profile as a ${user.current_role || "professional"} with ${user.experience_years || 0} years experience targeting ${user.target_role || "the next level"}: The CareerIQ algorithm considers your skill coverage, salary normalization (L1–L10), market demand trends, and ATS compatibility. To improve your score, focus on adding high-demand skills like MLOps, LLM fine-tuning, or Kubernetes — each adding ₹2L–₹4L in market value.`;
     setAnswer(finalAnswer);
     setHistory(prev => [...prev.slice(-9), { q, a: finalAnswer }]);
@@ -966,7 +1045,8 @@ const ResumeAnalysis = ({ user }) => {
     const prompt = `You are an expert Indian tech career advisor. Analyze this resume and return ONLY a valid JSON object (no markdown, no backticks):
 {"ats_score":<0-100>,"quality_score":<0-100>,"extracted_skills":[...],"experience_years":<number>,"salary_estimate":<INR number>,"salary_low":<INR>,"salary_high":<INR>,"salary_level":"<L1-L10>","market_alignment":<0-1>,"missing_skills":[...],"recommendations":[5 strings],"strengths":[3 strings],"target_role_fit":"<pct%>","anonymized":true}
 Resume: ${resumeText.slice(0, 2000)}`;
-    const gemRes = await callGemini(prompt);
+    const res = await callGemini(prompt);
+    const gemRes = res.text;
     let parsed = null;
     if (gemRes) { try { parsed = JSON.parse(gemRes.replace(/```json|```/g, "").trim()); } catch { } }
     const data = await apiCall("/api/resume/analyze", { method: "POST", body: JSON.stringify({ resume_text: resumeText, target_role: user.target_role || "Software Engineer" }) });
@@ -1004,7 +1084,8 @@ Resume: ${resumeText.slice(0, 2000)}`;
 {"overall_score":<0-100>,"keyword_score":<0-100>,"format_score":<0-100>,"impact_score":<0-100>,"action_verb_score":<0-100>,"section_score":<0-100>,"matched_keywords":[...],"missing_keywords":[...],"gemini_suggestions":[3 strings]}
 RESUME: ${atsResume.slice(0, 1000)}
 JD: ${atsJD.slice(0, 800)}`;
-    const gemRes = await callGemini(prompt);
+    const res = await callGemini(prompt);
+    const gemRes = res.text;
     let parsed = null;
     if (gemRes) { try { parsed = JSON.parse(gemRes.replace(/```json|```/g, "").trim()); } catch { } }
     const kw = ["python", "tensorflow", "kubernetes", "mlops", "docker", "aws", "pytorch", "sql"];
@@ -1025,7 +1106,8 @@ JD: ${atsJD.slice(0, 800)}`;
     const prompt = `Write a powerful 3-sentence professional summary for an Indian tech resume:
 Name: ${builderForm.name}, Role: ${builderForm.role || user.current_role}, Skills: ${builderForm.skills}, Experience: ${user.experience_years ?? 0} years, Target: ${user.target_role}
 Return ONLY the summary text, no preamble.`;
-    const summary = await callGemini(prompt);
+    const res = await callGemini(prompt);
+    const summary = res.text;
     if (summary) setBuilderForm(p => ({ ...p, summary: summary.trim() }));
     setAiEnhancing(false);
   };
@@ -1111,11 +1193,11 @@ ${builderForm.certifications ? `CERTIFICATIONS\n${builderForm.certifications}` :
               color: loading || !resumeText.trim() ? C.textMuted : "white", border: "none", padding: 11, borderRadius: 8,
               fontWeight: 700, fontSize: 14, cursor: resumeText.trim() ? "pointer" : "not-allowed"
             }}>
-              {loading ? <span>Analyzing with Gemini AI<LoadingDots /></span> : "⚡ Analyze with AI"}
+              {loading ? <span>Analyzing with Expert AI<LoadingDots /></span> : "⚡ Analyze with AI"}
             </button>
           </Card>
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-            {[{ icon: "🔒", t: "Privacy-First", d: "PII auto-stripped — name, email, phone never stored" }, { icon: "🧠", t: "Gemini AI Analysis", d: "Extracts 150+ skills from natural resume text" }, { icon: "💰", t: "Salary Normalization", d: "Maps to L1–L10 India bands for market comparison" }, { icon: "📊", t: "ATS Scoring", d: "Compatibility score + improvement suggestions" }].map(f => (
+            {[{ icon: "🔒", t: "Privacy-First", d: "PII auto-stripped — name, email, phone never stored" }, { icon: "🧠", t: "Expert AI Analysis", d: "Extracts 150+ skills from natural resume text" }, { icon: "💰", t: "Salary Normalization", d: "Maps to L1–L10 India bands for market comparison" }, { icon: "📊", t: "ATS Scoring", d: "Compatibility score + improvement suggestions" }].map(f => (
               <Card key={f.t} style={{ padding: 14 }}>
                 <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
                   <span style={{ fontSize: 18, flexShrink: 0 }}>{f.icon}</span>
@@ -1171,7 +1253,7 @@ ${builderForm.certifications ? `CERTIFICATIONS\n${builderForm.certifications}` :
             <Card><div style={{ fontWeight: 700, fontSize: 13, color: C.text, marginBottom: 10 }}>🎯 Job Description</div><textarea rows={12} value={atsJD} onChange={e => setAtsJD(e.target.value)} style={{ resize: "none", fontSize: 12, lineHeight: 1.7 }} /></Card>
           </div>
           <button onClick={runATS} disabled={atsLoading} style={{ background: atsLoading ? C.border : `linear-gradient(135deg,${C.blue},${C.purple})`, color: atsLoading ? C.textMuted : "white", border: "none", padding: "10px 24px", borderRadius: 8, cursor: atsLoading ? "not-allowed" : "pointer", fontWeight: 700, fontSize: 13, marginBottom: 16 }}>
-            {atsLoading ? <span>Analyzing with Gemini<LoadingDots /></span> : "⚡ Run ATS Analysis"}
+            {atsLoading ? <span>Analyzing with Expert AI<LoadingDots /></span> : "⚡ Run ATS Analysis"}
           </button>
           {atsScore && (
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(260px,1fr))", gap: 16 }}>
@@ -1191,7 +1273,7 @@ ${builderForm.certifications ? `CERTIFICATIONS\n${builderForm.certifications}` :
                 <div style={{ marginBottom: 12 }}><div style={{ fontSize: 12, color: C.green, fontWeight: 700, marginBottom: 6 }}>✓ Matched ({atsScore.matched_keywords?.length})</div><div>{atsScore.matched_keywords?.map(k => <SkillTag key={k} skill={k} status="have" />)}</div></div>
                 <div style={{ marginBottom: 16 }}><div style={{ fontSize: 12, color: C.orange, fontWeight: 700, marginBottom: 6 }}>✕ Missing ({atsScore.missing_keywords?.length})</div><div>{atsScore.missing_keywords?.map(k => <SkillTag key={k} skill={k} status="missing" />)}</div></div>
                 {atsScore.gemini_suggestions?.length > 0 && <>
-                  <div style={{ fontWeight: 700, fontSize: 13, color: C.text, marginBottom: 8 }}>🤖 Gemini AI Tips</div>
+                  <div style={{ fontWeight: 700, fontSize: 13, color: C.text, marginBottom: 8 }}>🤖 AI Interview Tips</div>
                   {atsScore.gemini_suggestions.map((s, i) => <div key={i} style={{ display: "flex", gap: 8, marginBottom: 8, alignItems: "flex-start" }}><Brain size={13} color={C.purple} style={{ flexShrink: 0, marginTop: 2 }} /><span style={{ fontSize: 12, color: C.textMid }}>{s}</span></div>)}
                 </>}
               </Card>
@@ -1834,8 +1916,10 @@ const InterviewPrep = ({ user }) => {
     setRoleErr(""); setLoading(true);
     const ctx = inputMode === "role" ? `Role: ${selectedRole}` : `JD: ${jd}`;
     const prompt = `You are an expert technical interviewer at a top Indian tech company. ${ctx}. Start the interview. Introduce yourself briefly, then ask the FIRST targeted interview question. Be professional, concise (under 120 words).`;
-    const resp = await callGemini(prompt);
-    setMessages([{ role: "ai", content: resp || `Hello! I'm your AI interviewer. Let's begin your interview for ${selectedRole || "this role"}.\n\n**Question 1:** Tell me about your background and what draws you to this role. What key experiences make you a strong candidate?` }]);
+    const res = await callGemini(prompt);
+    const questions = getOfflineQuestions(selectedRole);
+    const content = res.status === "success" ? res.text : `Hello! I'm your AI interviewer. The AI service is currently at capacity, so I'll be guiding you through a curated expert interview. Let's begin.\n\nQuestion 1: ${questions[0]}`;
+    setMessages([{ role: "ai", content }]);
     setQCount(1); setMode("chat"); setLoading(false);
   };
 
@@ -1846,21 +1930,26 @@ const InterviewPrep = ({ user }) => {
     const ctx = inputMode === "role" ? selectedRole : jd.slice(0, 300);
     const history = newMsgs.slice(-6).map(m => `${m.role === "user" ? "Candidate" : "Interviewer"}: ${m.content}`).join("\n\n");
     const next = qCount + 1; const isLast = next > 8;
-    const prompt = `You are an interviewer. Context: ${ctx}\n\nConversation:\n${history}\n\n${isLast ? "Interview done. Give encouraging feedback, overall summary, strengths, one improvement, score out of 10. Under 150 words." : `One line feedback on last answer, then **Question ${next}:** (progressively harder). Under 120 words.`}`;
-    const resp = await callGemini(prompt);
-    setMessages(p => [...p, { role: "ai", content: resp || `Good answer! Keep providing specific examples.\n\n**Question ${next}:** Describe a complex system you designed or a difficult bug you solved.` }]);
+    const prompt = `You are an interviewer. Context: ${ctx}\n\nConversation:\n${history}\n\n${isLast ? "Interview done. Give encouraging feedback, overall summary, strengths, one improvement, score out of 10. Under 150 words." : `One line feedback on last answer, then Question ${next}: (progressively harder). Under 120 words.`}`;
+    const res = await callGemini(prompt);
+    let content = res.text;
+    if (res.status !== "success") {
+      const questions = getOfflineQuestions(selectedRole);
+      content = isLast ? "Excellent effort! You've completed the expert interview. (AI feedback currently offline due to high traffic)." : `Good points! Let's move to the next one.\n\nQuestion ${next}: ${questions[next - 1] || questions[1]}`;
+    }
+    setMessages(p => [...p, { role: "ai", content }]);
     setQCount(next); setLoading(false);
   };
 
   if (mode === "setup") return (
     <div style={{ animation: "fadeUp 0.4s ease both" }}>
-      <SectionHeader title="AI Interview Prep" sub="Real-time interview practice powered by Google Gemini AI" icon={MessageSquare} />
+      <SectionHeader title="AI Interview Prep" sub="Real-time interview practice powered by Expert AI" icon={MessageSquare} />
       <div style={{ maxWidth: 560, margin: "0 auto" }}>
         <Card elevated style={{ padding: "clamp(20px,5vw,32px)" }}>
           <div style={{ textAlign: "center", marginBottom: 24 }}>
             <div style={{ width: 64, height: 64, background: `linear-gradient(135deg,${C.blue},${C.purple})`, borderRadius: 18, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 12px" }}><Bot size={30} color="white" /></div>
             <div style={{ fontWeight: 800, fontSize: 20, color: C.text }}>AI Interview Coach</div>
-            <div style={{ color: C.textMuted, fontSize: 13, marginTop: 4 }}>Powered by Google Gemini · Role-specific · Real-time feedback</div>
+            <div style={{ color: C.textMuted, fontSize: 13, marginTop: 4 }}>Powered by Expert AI · Role-specific · Real-time feedback</div>
           </div>
           <div style={{ display: "flex", gap: 8, marginBottom: 20, background: C.bgSection, borderRadius: 10, padding: 4 }}>
             {[["role", "🎯 By Job Role"], ["jd", "📋 By Job Description"]].map(([m, l]) => (
@@ -1885,7 +1974,7 @@ const InterviewPrep = ({ user }) => {
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12, flexWrap: "wrap", gap: 8 }}>
         <div>
           <h2 style={{ fontWeight: 800, fontSize: "clamp(14px,2.5vw,18px)", color: C.text, margin: 0 }}>🤖 AI Interview — {selectedRole || "Custom JD"}</h2>
-          <div style={{ fontSize: 12, color: C.textMuted }}>Q{qCount}/8 · Gemini AI</div>
+          <div style={{ fontSize: 12, color: C.textMuted }}>Q{qCount}/8 · CareerIQ AI</div>
         </div>
         <button onClick={() => { setMode("setup"); setMessages([]); setQCount(0); }} style={{ background: C.bgSection, border: `1px solid ${C.border}`, color: C.textMuted, padding: "7px 14px", borderRadius: 8, cursor: "pointer", fontSize: 12, fontWeight: 600, display: "flex", alignItems: "center", gap: 5 }}>
           <RotateCcw size={13} />New Session
@@ -2352,7 +2441,8 @@ const Portfolio = ({ user }) => {
     const prompt = `Write a compelling 2-sentence project description for an Indian tech portfolio:
 Title: ${proj.title}, Stack: ${proj.stack.join(", ")}, Category: ${proj.category}
 Return ONLY the description text.`;
-    const desc = await callGemini(prompt);
+    const res = await callGemini(prompt);
+    const desc = res.text;
     if (desc) setEditProject(p => ({ ...p, description: desc.trim() }));
     setAiLoading(false);
   };
